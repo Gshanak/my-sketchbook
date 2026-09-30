@@ -39,7 +39,7 @@ button{font:inherit}
 /* the painted ground the whole page sits on */
 .wash{
   position:fixed;inset:0;z-index:-2;pointer-events:none;
-  background:url(meng-to-sketchbook/bg-wash.jpg) center top / cover no-repeat;
+  background:url(meng-to-sketchbook/bg-wash.webp) center top / cover no-repeat;
   opacity:.85;
 }
 .wash:after{
@@ -381,7 +381,7 @@ button{font:inherit}
 .rule{
   display:block;width:min(1080px,86vw);margin:clamp(30px,6vh,64px) auto;
   height:clamp(26px,4vw,46px);
-  background:url(meng-to-sketchbook/divider.png) center / 100% auto no-repeat;
+  background:url(meng-to-sketchbook/divider.webp) center / 100% auto no-repeat;
   opacity:.5;
 }
 .rule.short{width:min(420px,52vw);opacity:.4}
@@ -420,6 +420,18 @@ button{font:inherit}
 
 .foot{font-size:11.5px;letter-spacing:var(--track-caps);text-transform:uppercase;
   color:var(--ink-faint);text-align:center;padding-bottom:44px}
+
+/* ---- low-end / mobile: drop the costly fixed blurs ---- */
+@media (max-width:640px), (pointer:coarse){
+  .top:before{
+    -webkit-backdrop-filter:none;backdrop-filter:none;
+    background:linear-gradient(180deg,rgba(240,236,226,.97),rgba(240,236,226,.88) 48%,rgba(240,236,226,0));
+  }
+  .sb-tools{
+    -webkit-backdrop-filter:none;backdrop-filter:none;
+    background:rgba(250,246,238,.92);
+  }
+}
 </style>
 </head>
 <body>
@@ -442,8 +454,8 @@ button{font:inherit}
   </header>
 
   <section id="sketchbook" class="hero">
-    <img class="botany l" src="meng-to-sketchbook/botany-left.png" alt="" aria-hidden="true">
-    <img class="botany r" src="meng-to-sketchbook/botany-right.png" alt="" aria-hidden="true">
+    <img class="botany l" src="meng-to-sketchbook/botany-left.webp" alt="" aria-hidden="true">
+    <img class="botany r" src="meng-to-sketchbook/botany-right.webp" alt="" aria-hidden="true">
 
     <p class="hero-kicker">Designer / Creator / AI Educator / Founder @ Singapore</p>
 
@@ -496,7 +508,7 @@ button{font:inherit}
       <p class="section-label">About</p>
       <p class="bio">Meng To is a designer, creator, and AI educator based in Singapore. He is the founder of <a class="bio-link" href="#">Design+Code</a>, where for over a decade he has taught designers and developers to build real apps — from Sketch and Xcode through SwiftUI, and now the AI tools that let one person ship what used to take a team. His work lives on the seam between craft and code: teaching designers to build, and builders to see. This sketchbook is the other half of that — the city looked at slowly, in <a class="bio-link" href="#">ink and a little colour</a>: shophouse shutters, hawker tents, the bay at dusk.</p>
     </div>
-    <img class="bloom" src="meng-to-sketchbook/bloom.png" alt="" aria-hidden="true">
+    <img class="bloom" src="meng-to-sketchbook/bloom.webp" alt="" aria-hidden="true">
   </section>
 
   <div class="rule short" aria-hidden="true"></div>
@@ -521,17 +533,17 @@ button{font:inherit}
 const Q=new URLSearchParams(location.search);
 const DIR='meng-to-sketchbook/';
 const PAGES=[
-  {file:'photo-page-1.png',       title:'Oppo Find X9 Ultra',        place:'My Showcase'},
-  {file:'photo-page-2.png',       title:'Festive Radiance',          place:'Festival of Lights'},
-  {file:'marina-bay-sands.png',   title:'Marina Bay Sands',          place:'Bayfront'},
-  {file:'gardens-by-the-bay.png', title:'Gardens by the Bay',        place:'Supertree Grove'},
-  {file:'merlion.png',            title:'The Merlion',               place:'Merlion Park'},
-  {file:'buddha-tooth.png',       title:'Buddha Tooth Relic Temple', place:'Chinatown'},
-  {file:'joo-chiat.png',          title:'Joo Chiat Shophouses',      place:'Katong'},
-  {file:'lau-pa-sat.png',         title:'Lau Pa Sat',                place:'Raffles Quay'},
-  {file:'marina-bay-skyline.png', title:'Marina Bay Skyline',        place:'The Bay'},
-  {file:'singapore-river.png',    title:'Singapore River',           place:'Boat Quay'},
-  {file:'botanic-gardens.png',    title:'Botanic Gardens',           place:'Tanglin'}
+  {file:'photo-page-1.webp',       title:'Oppo Find X9 Ultra',        place:'My Showcase'},
+  {file:'photo-page-2.webp',       title:'Festive Radiance',          place:'Festival of Lights'},
+  {file:'marina-bay-sands.webp',   title:'Marina Bay Sands',          place:'Bayfront'},
+  {file:'gardens-by-the-bay.webp', title:'Gardens by the Bay',        place:'Supertree Grove'},
+  {file:'merlion.webp',            title:'The Merlion',               place:'Merlion Park'},
+  {file:'buddha-tooth.webp',       title:'Buddha Tooth Relic Temple', place:'Chinatown'},
+  {file:'joo-chiat.webp',          title:'Joo Chiat Shophouses',      place:'Katong'},
+  {file:'lau-pa-sat.webp',         title:'Lau Pa Sat',                place:'Raffles Quay'},
+  {file:'marina-bay-skyline.webp', title:'Marina Bay Skyline',        place:'The Bay'},
+  {file:'singapore-river.webp',    title:'Singapore River',           place:'Boat Quay'},
+  {file:'botanic-gardens.webp',    title:'Botanic Gardens',           place:'Tanglin'}
 ];
 PAGES.forEach(p=>p.url=DIR+p.file);
 const M=PAGES.length, LAND=6;
@@ -544,8 +556,14 @@ const capBox=document.getElementById('sbCaptions');
 const hint=document.getElementById('sbHint');
 const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/* LITE: phones, tablets and low-RAM devices. Halves the leaf strips and
+   skips the magnifier's second copy of the book, which is the single
+   most expensive thing this page does while a glass drag is active.  */
+const LITE=matchMedia('(max-width: 640px), (pointer: coarse)').matches
+          ||(navigator.deviceMemory||8)<4;
+
 /* ------------------------------------------------ the turning leaf */
-const N=18;            /* strips — enough for a smooth curve          */
+const N=LITE?8:18;      /* strips — enough for a smooth curve          */
 const SPAN=0.449;      /* gutter → outer page edge, as a fraction     */
 const BETA=0.60;       /* peak curl of the arc, radians              */
 let idx=0, turn=null;  /* turn = {dir, from, to, t}                   */
@@ -875,6 +893,7 @@ const zoomWrap=document.getElementById('zoomWrap');
 const zoomInner=document.getElementById('zoomInner');
 /* mirror whatever the book is currently showing into the magnified copy */
 function syncZoomLayer(){
+  if(LITE)return;               /* no second copy of the book on low-end */
   zoomInner.textContent='';
   for(const c of book.children){
     if(c.classList.contains('sb-zone'))continue;      /* hit targets need no copy */
@@ -904,6 +923,7 @@ function placeLoupe(){
     : -Math.hypot(lx-nx,ly-ny);
   const k=Math.max(0,Math.min(1,(inside+R*0.30)/(R*0.55)));
 
+  if(LITE){zoomWrap.style.opacity=0;return;}   /* plain glass on low-end */
   zoomWrap.style.opacity=(loupeOn?k:0).toFixed(3);
   if(k<=0.002)return;
   const r=(R-bez).toFixed(1);
@@ -1021,7 +1041,7 @@ function startIntro(){
 (async function boot(){
   idx=Q.has('shot')?(parseInt(Q.get('shot'),10)||0)%M:0;
   paint();applyView();
-  await Promise.all(PAGES.map(p=>{
+  await Promise.all((LITE?PAGES.slice(0,2):PAGES).map(p=>{
     const im=new Image();im.src=p.url;
     return im.decode?im.decode().catch(()=>{}):new Promise(r=>{im.onload=im.onerror=r});
   }));
