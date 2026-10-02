@@ -2,7 +2,7 @@
 <!--
   ============================================================================
   ENVELOPE  —  a standalone piece, separate from the book app.
-  v1.9  ·  the user's paper texture on every surface, curved flap and pocket,
+  v2.0  ·  the user's paper texture on every surface, curved flap and pocket,
            and a crimson wax stamp: press the stamp and the flap lifts, carrying
            the stamp up with it, stuck to its edge. Press the letter to draw it out of the envelope.
   ============================================================================
@@ -121,7 +121,7 @@ body{
 /* the flap is no longer lying on the front, so its shadow goes */
 .envelope.open .flapshadow{opacity:0}
 /* and the letter rises out of the mouth */
-.envelope.open .letter-sheet{transform:translateY(-19.35%);transition-delay:.44s}
+.envelope.open .letter-sheet{transform:translateY(-44.35%);transition-delay:.44s}
 .flapshadow{transition:opacity .35s ease}
 
 /* ================= the hint ================= */
@@ -251,12 +251,14 @@ body{
   var letter = document.getElementById('letter');
   var scrollroom = document.getElementById('scrollroom');
   var behindTimer = null, settleTimer = null, drawTimer = null, driving = false, ticking = false;
+  var openedAt = 0;
 
   /* The letter's two resting places, as a percentage of its OWN height:
-       -19.35%  out just far enough that 15% of the letter shows
+       -44.35%  out far enough that 40% of the letter shows — its heading and
+                the body of the note, so it reads as a letter at a glance
        -104.35% fully out — its bottom clear of the envelope's top edge
      Everything between those two is driven by how far you have scrolled. */
-  var RISE_OPEN = -19.35, RISE_FULL = -104.35;
+  var RISE_OPEN = -44.35, RISE_FULL = -104.35;
 
   function applyScroll() {
     ticking = false;
@@ -273,6 +275,7 @@ body{
   }
 
   function openLetter() {
+    openedAt = Date.now();
     env.classList.add('open');
     clearTimeout(behindTimer); clearTimeout(settleTimer);
     behindTimer = setTimeout(function () { env.classList.add('flap-behind'); }, 400);
@@ -289,6 +292,7 @@ body{
      and set the scroll to match, so the two stay in step. */
   function drawOut() {
     var room = scrollroom.offsetHeight || 1;
+    clearTimeout(drawTimer);
     driving = false;
     window.scrollTo(0, room);
     letter.style.transition = 'transform .55s cubic-bezier(.42,.02,.24,1)';
@@ -298,6 +302,7 @@ body{
     drawTimer = setTimeout(function () {
       letter.style.transition = 'none';
       driving = true;
+      drawTimer = null;
     }, 620);
   }
 
@@ -321,6 +326,7 @@ body{
   letter.addEventListener('click', function (e) {
     e.stopPropagation();
     if (!env.classList.contains('open')) { openLetter(); return; }
+    if (drawTimer) { return; }        /* the draw is still running — same press */
     var room = scrollroom.offsetHeight || 1;
     if ((window.pageYOffset || 0) < room - 4) {
       drawOut();          /* bring it the rest of the way out */
@@ -332,7 +338,12 @@ body{
   /* The letter lies inside the envelope, so pressing the envelope anywhere is
      pressing the letter. The stamp stops the tap before it gets here. */
   env.addEventListener('click', function () {
-    if (env.classList.contains('open')) { closeLetter(); } else { openLetter(); }
+    if (!env.classList.contains('open')) { openLetter(); return; }
+    /* A tap that lands soon after opening is the same press arriving twice —
+       a phone can deliver it that way. Closing on it is what made the envelope
+       shut itself again the moment it opened. */
+    if (Date.now() - openedAt < 1500) { return; }
+    closeLetter();
   });
 
   window.addEventListener('scroll', onScroll, { passive: true });
