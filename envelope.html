@@ -2,9 +2,9 @@
 <!--
   ============================================================================
   ENVELOPE  —  a standalone piece, separate from the book app.
-  v1.5  ·  the user's paper texture on every surface, curved flap and pocket,
+  v1.6  ·  the user's paper texture on every surface, curved flap and pocket,
            and a crimson wax stamp: press the stamp and the flap lifts, carrying
-           the stamp up with it, stuck to its edge. Stamp sits on the lengthened point.
+           the stamp up with it, stuck to its edge. Stamp sits on the flap's point.
   ============================================================================
 -->
 <html lang="en">
@@ -80,7 +80,7 @@ body{
   transition:transform .75s cubic-bezier(.5,.05,.3,1);
 }
 .stamp{
-  position:absolute;left:50%;top:calc(37.5% + 5px);width:clamp(62px,18%,104px);
+  position:absolute;left:50%;top:calc(44% + 5px);width:clamp(62px,18%,104px);
   transform:translate(-50%,-50%);padding:0;border:0;background:none;cursor:pointer;
   pointer-events:auto;filter:drop-shadow(0 4px 6px rgba(58,44,26,.34));
   transition:transform .25s ease;
