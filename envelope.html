@@ -2,9 +2,9 @@
 <!--
   ============================================================================
   ENVELOPE  —  a standalone piece, separate from the book app.
-  v1.4  ·  the user's paper texture on every surface, curved flap and pocket,
+  v1.5  ·  the user's paper texture on every surface, curved flap and pocket,
            and a crimson wax stamp: press the stamp and the flap lifts, carrying
-           the stamp up with it, stuck to its edge. Stamp sits 5px lower.
+           the stamp up with it, stuck to its edge. Stamp sits on the lengthened point.
   ============================================================================
 -->
 <html lang="en">
@@ -80,7 +80,7 @@ body{
   transition:transform .75s cubic-bezier(.5,.05,.3,1);
 }
 .stamp{
-  position:absolute;left:50%;top:calc(33.5% + 5px);width:clamp(62px,18%,104px);
+  position:absolute;left:50%;top:calc(37.5% + 5px);width:clamp(62px,18%,104px);
   transform:translate(-50%,-50%);padding:0;border:0;background:none;cursor:pointer;
   pointer-events:auto;filter:drop-shadow(0 4px 6px rgba(58,44,26,.34));
   transition:transform .25s ease;
@@ -169,9 +169,9 @@ body{
       <!-- the seams themselves -->
       <path d="M0 0 C 14 14 40 25 62 27.6 C 70 29 76 30 81 30 C 86 30 92 29 100 27.6 C 122 25 148 14 162 0" fill="none" stroke="rgba(43,39,33,.15)" stroke-width=".45"/>
       <!-- the shadow the closed flap casts on the front -->
-      <path d="M0 0 H162 V6 C 152 9 124 28 98 35.6 C 93 38.2 88 40 81 40 C 74 40 69 38.2 62 35.6 C 38 28 10 9 0 6 Z" fill="rgba(58,44,26,.26)" filter="url(#soften)" transform="translate(0 2.2)"/>
+      <path d="M0 0 H162 V6 C 154 9 126 31 100 39 C 93 41.6 88 44 81 44 C 74 44 69 41.6 62 39 C 36 31 8 9 0 6 Z" fill="rgba(58,44,26,.26)" filter="url(#soften)" transform="translate(0 2.2)"/>
       <!-- a hairline where the flap's edge sits -->
-      <path d="M0 0 H162 V6 C 152 9 124 28 98 35.6 C 93 38.2 88 40 81 40 C 74 40 69 38.2 62 35.6 C 38 28 10 9 0 6 Z" fill="none" stroke="rgba(43,39,33,.14)" stroke-width=".4"/>
+      <path d="M0 0 H162 V6 C 154 9 126 31 100 39 C 93 41.6 88 44 81 44 C 74 44 69 41.6 62 39 C 36 31 8 9 0 6 Z" fill="none" stroke="rgba(43,39,33,.14)" stroke-width=".4"/>
       <!-- light falling across the whole envelope -->
       <path d="M0 0 H162 V100 H0 Z" fill="url(#light)" style="mix-blend-mode:soft-light"/>
       <!-- the paper's thickness: a bright lip top-left, a dark one bottom-right -->
@@ -196,14 +196,14 @@ body{
           <stop offset=".7" stop-color="#ffffff" stop-opacity="0"/>
         </linearGradient>
       </defs>
-      <path d="M0 0 H162 V6 C 152 9 124 28 98 35.6 C 93 38.2 88 40 81 40 C 74 40 69 38.2 62 35.6 C 38 28 10 9 0 6 Z" fill="url(#flapG)"/>
-      <path class="tex" d="M0 0 H162 V6 C 152 9 124 28 98 35.6 C 93 38.2 88 40 81 40 C 74 40 69 38.2 62 35.6 C 38 28 10 9 0 6 Z" fill="url(#texP)"/>
-      <path d="M0 0 H162 V6 C 152 9 124 28 98 35.6 C 93 38.2 88 40 81 40 C 74 40 69 38.2 62 35.6 C 38 28 10 9 0 6 Z" fill="url(#flapShade)"/>
+      <path d="M0 0 H162 V6 C 154 9 126 31 100 39 C 93 41.6 88 44 81 44 C 74 44 69 41.6 62 39 C 36 31 8 9 0 6 Z" fill="url(#flapG)"/>
+      <path class="tex" d="M0 0 H162 V6 C 154 9 126 31 100 39 C 93 41.6 88 44 81 44 C 74 44 69 41.6 62 39 C 36 31 8 9 0 6 Z" fill="url(#texP)"/>
+      <path d="M0 0 H162 V6 C 154 9 126 31 100 39 C 93 41.6 88 44 81 44 C 74 44 69 41.6 62 39 C 36 31 8 9 0 6 Z" fill="url(#flapShade)"/>
       <!-- the crease where the flap folds: a dark line with a light one above it -->
       <path d="M0 4.6 H162" stroke="rgba(58,44,26,.30)" stroke-width="1.5" filter="url(#soften)"/>
       <path d="M0 3.2 H162" stroke="rgba(255,255,255,.55)" stroke-width=".8"/>
-      <path d="M0 0 H162 V6 C 152 9 124 28 98 35.6 C 93 38.2 88 40 81 40 C 74 40 69 38.2 62 35.6 C 38 28 10 9 0 6 Z" fill="url(#flapLight)"/>
-      <path d="M0 0 H162 V6 C 152 9 124 28 98 35.6 C 93 38.2 88 40 81 40 C 74 40 69 38.2 62 35.6 C 38 28 10 9 0 6 Z" fill="none" stroke="rgba(43,39,33,.11)" stroke-width=".4"/>
+      <path d="M0 0 H162 V6 C 154 9 126 31 100 39 C 93 41.6 88 44 81 44 C 74 44 69 41.6 62 39 C 36 31 8 9 0 6 Z" fill="url(#flapLight)"/>
+      <path d="M0 0 H162 V6 C 154 9 126 31 100 39 C 93 41.6 88 44 81 44 C 74 44 69 41.6 62 39 C 36 31 8 9 0 6 Z" fill="none" stroke="rgba(43,39,33,.11)" stroke-width=".4"/>
     </svg>
 
     <!-- the stamp, on the flap's point -->
