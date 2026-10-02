@@ -2,9 +2,9 @@
 <!--
   ============================================================================
   ENVELOPE  —  a standalone piece, separate from the book app.
-  v1.8  ·  the user's paper texture on every surface, curved flap and pocket,
+  v1.9  ·  the user's paper texture on every surface, curved flap and pocket,
            and a crimson wax stamp: press the stamp and the flap lifts, carrying
-           the stamp up with it, stuck to its edge. The letter is drawn out of the envelope as you scroll.
+           the stamp up with it, stuck to its edge. Press the letter to draw it out of the envelope.
   ============================================================================
 -->
 <html lang="en">
@@ -52,6 +52,7 @@ body{
 /* ================= the envelope ================= */
 .envelope{
   position:relative;width:100%;aspect-ratio:1.62;perspective:1500px;
+  cursor:pointer;
 }
 /* the envelope's shadow gets its own static layer. A filter over an animating
    subtree forces the whole thing to be re-rendered every frame — the one thing
@@ -236,7 +237,7 @@ body{
       <path d="M30 70 C 36 52, 24 32, 30 14"/>
       <path d="M21 25 L 30 12 L 39 25"/>
     </svg>
-    <span class="closed-txt">Press the stamp to open</span>
+    <span class="closed-txt">Press the letter to open</span>
     <span class="open-txt">Scroll to draw the letter out</span>
     </div>
   </div>
@@ -249,7 +250,7 @@ body{
   var stamp = document.getElementById('seal');
   var letter = document.getElementById('letter');
   var scrollroom = document.getElementById('scrollroom');
-  var behindTimer = null, settleTimer = null, driving = false, ticking = false;
+  var behindTimer = null, settleTimer = null, drawTimer = null, driving = false, ticking = false;
 
   /* The letter's two resting places, as a percentage of its OWN height:
        -19.35%  out just far enough that 15% of the letter shows
@@ -282,20 +283,57 @@ body{
       applyScroll();
     }, 1150);
   }
+  /* Bring the letter the rest of the way out when it is pressed, rather than
+     waiting for a scroll. The scene is pinned, so moving the page to the bottom
+     does not move what you see — only the letter does. We animate the letter
+     and set the scroll to match, so the two stay in step. */
+  function drawOut() {
+    var room = scrollroom.offsetHeight || 1;
+    driving = false;
+    window.scrollTo(0, room);
+    letter.style.transition = 'transform .55s cubic-bezier(.42,.02,.24,1)';
+    void letter.offsetHeight;                       /* flush, so the transition takes */
+    letter.style.transform = 'translateY(' + RISE_FULL + '%)';
+    clearTimeout(drawTimer);
+    drawTimer = setTimeout(function () {
+      letter.style.transition = 'none';
+      driving = true;
+    }, 620);
+  }
+
   function closeLetter() {
     clearTimeout(behindTimer); clearTimeout(settleTimer);
     driving = false;
     env.classList.remove('flap-behind', 'open');
     letter.style.transition = '';
     letter.style.transform = '';
-    if ((window.pageYOffset || 0) > 0) { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    if ((window.pageYOffset || 0) > 0) { window.scrollTo(0, 0); }   /* instant: the scene is pinned, so nothing appears to jump */
   }
 
+  /* The stamp is the seal: pressing it opens the envelope. */
   stamp.addEventListener('click', function (e) {
     e.stopPropagation();
+    openLetter();
+  });
+
+  /* The letter is what you press. Pressing it brings it out of the envelope;
+     once it is fully out, pressing it again puts it away. */
+  letter.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (!env.classList.contains('open')) { openLetter(); return; }
+    var room = scrollroom.offsetHeight || 1;
+    if ((window.pageYOffset || 0) < room - 4) {
+      drawOut();          /* bring it the rest of the way out */
+    } else {
+      closeLetter();      /* it is already out — put it away */
+    }
+  });
+
+  /* The letter lies inside the envelope, so pressing the envelope anywhere is
+     pressing the letter. The stamp stops the tap before it gets here. */
+  env.addEventListener('click', function () {
     if (env.classList.contains('open')) { closeLetter(); } else { openLetter(); }
   });
-  letter.addEventListener('click', function (e) { e.stopPropagation(); closeLetter(); });
 
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll, { passive: true });
