@@ -1,9 +1,9 @@
 <!doctype html>
 <!--
-  PHOTO BOOK APP (hosted) — version 15, 2026-10-02
-  The same app as the single-file master, but it loads the book's images from
-  this same web address instead of carrying them inside itself. Served from a
-  normal https origin, which is what the browser needs to read picked photos.
+  PHOTO BOOK APP (hosted) — version 16, 2026-10-02
+  Same app as the single-file master; loads the book's images from this same
+  web address. Served from a normal https origin, which is what the browser
+  needs in order to read picked photos.
 -->
 
 <html lang="en">
@@ -1223,7 +1223,7 @@ function startIntro(){
 
 
 
-const PB_VERSION = '15';
+const PB_VERSION = '16';
 
 /* ============================================================
    PHOTO BOOK — app layer
@@ -1512,46 +1512,24 @@ async function pbMakePage(file, seed, crop) {
    Two photos share one spread: each fills one page. Corners are rounded and
    the edge waves on the OUTER sides only — where the two pages meet at the
    spine the edge is straight, so they sit flush. */
-function pbPaintHalf(ctx, dec, crop, rect, seed) {
-  const rw = rect.x1 - rect.x0, rh = rect.y1 - rect.y0;
-  let sx, sy, sw, sh;
-  if (crop) { sx = crop.sx; sy = crop.sy; sw = crop.sw; sh = crop.sh; }
-  else {
-    const s = Math.max(rw / dec.w, rh / dec.h);
-    sw = rw / s; sh = rh / s;
-    sx = (dec.w - sw) / 2; sy = (dec.h - sh) / 2;
-  }
-  const pc = document.createElement('canvas'); pc.width = 1760; pc.height = 1240;
-  const px = pc.getContext('2d');
-  px.drawImage(dec.src, sx, sy, sw, sh, rect.x0, rect.y0, rw, rh);
-  /* rounded, wavy paper edge … */
-  px.globalCompositeOperation = 'destination-in';
-  px.filter = 'blur(2px)';
-  px.fillStyle = '#fff';
-  pbWavyPath(px, seed); px.fill();
-  /* … then cut to this half: the spine edge stays straight */
-  px.filter = 'none';
-  px.fillRect(rect.x0, rect.y0, rw, rh);
-  px.globalCompositeOperation = 'source-over';
-  ctx.drawImage(pc, 0, 0);
-  pbRelease(pc);
-}
+/* ---------------------------------------------------------- page builders
+   A page is built from "parts". A part is { src, crop } — src is a url of a
+   (downscaled) copy of the photo, crop is the area chosen in the editor.
+   Keeping the parts means a spread can be REBUILT later: when a new photo is
+   added, it fills the empty facing page of the last spread instead of starting
+   a new one. */
 
-async function pbMakeSpread(fileA, fileB, cropA, cropB, seed) {
-  const decA = await pbDecode(fileA);
-  const decB = fileB ? await pbDecode(fileB) : null;
+function pbCanvas() { const c = document.createElement('canvas'); c.width = 1760; c.height = 1240; return c; }
 
-  const c = document.createElement('canvas'); c.width = 1760; c.height = 1240;
-  const ctx = c.getContext('2d');
-
-  /* one shadow for the whole spread, as in the original pages */
-  const shc = document.createElement('canvas'); shc.width = 1760; shc.height = 1240;
+/* the soft paper shadow that sits under a sheet */
+function pbPaintShadow(ctx, seed) {
+  const shc = pbCanvas();
   const shx = shc.getContext('2d');
   shx.filter = 'blur(13px)';
   shx.translate(0, 10);
   shx.fillStyle = 'rgba(58,44,26,0.17)';
   pbWavyPath(shx, seed); shx.fill();
-  /* keep only the halo outside the sheet, so an unused page stays clean */
+  /* keep only the halo outside the sheet */
   shx.setTransform(1, 0, 0, 1, 0, 0);
   shx.filter = 'none';
   shx.globalCompositeOperation = 'destination-out';
@@ -1559,23 +1537,107 @@ async function pbMakeSpread(fileA, fileB, cropA, cropB, seed) {
   pbWavyPath(shx, seed); shx.fill();
   shx.globalCompositeOperation = 'source-over';
   ctx.drawImage(shc, 0, 0);
+  pbRelease(shc);
+}
 
-  pbPaintHalf(ctx, decA, cropA, LEFT_RECT, seed);
-  if (decB) {
-    pbPaintHalf(ctx, decB, cropB, RIGHT_RECT, seed + 1);
-  } else {
-    /* no second photo: make the facing page a clean, normal empty page */
-    try {
-      const paper = await pbDecodeUrl(PB_PAPER);
-      pbPaintHalf(ctx, { src: paper, w: paper.naturalWidth, h: paper.naturalHeight },
-                  PB_PAPER_CROP, RIGHT_RECT, seed + 1);
-    } catch (e) { console.warn('paper page could not be drawn', e); }
+/* one half page: a picture with the soft paper edge, cut straight at the spine */
+function pbPaintHalfFrom(ctx, img, w, h, crop, rect, seed) {
+  const rw = rect.x1 - rect.x0, rh = rect.y1 - rect.y0;
+  let sx, sy, sw, sh;
+  if (crop) { sx = crop.sx; sy = crop.sy; sw = crop.sw; sh = crop.sh; }
+  else {
+    const sc = Math.max(rw / w, rh / h);
+    sw = rw / sc; sh = rh / sc;
+    sx = (w - sw) / 2; sy = (h - sh) / 2;
   }
+  const pc = pbCanvas();
+  const px = pc.getContext('2d');
+  px.drawImage(img, sx, sy, sw, sh, rect.x0, rect.y0, rw, rh);
+  px.globalCompositeOperation = 'destination-in';
+  px.filter = 'blur(2px)';
+  px.fillStyle = '#fff';
+  pbWavyPath(px, seed); px.fill();
+  px.filter = 'none';
+  px.fillRect(rect.x0, rect.y0, rw, rh);
+  px.globalCompositeOperation = 'source-over';
+  ctx.drawImage(pc, 0, 0);
+  pbRelease(pc);
+}
 
+async function pbPaintPart(ctx, part, rect, seed) {
+  const img = await pbDecodeUrl(part.src);
+  pbPaintHalfFrom(ctx, img, img.naturalWidth, img.naturalHeight, part.crop, rect, seed);
+}
+
+/* the book's own blank paper, for a page with no photo */
+async function pbPaintPaper(ctx, rect, seed) {
+  const img = await pbDecodeUrl(PB_PAPER);
+  pbPaintHalfFrom(ctx, img, img.naturalWidth, img.naturalHeight, PB_PAPER_CROP, rect, seed);
+}
+
+/* one photo across the whole spread */
+async function pbBuildPage(part, seed) {
+  const c = pbCanvas();
+  const ctx = c.getContext('2d');
+  pbPaintShadow(ctx, seed);
+  const d = await pbDecodeUrl(part.src);
+  const w = d.naturalWidth, h = d.naturalHeight;
+  let sx, sy, sw, sh;
+  if (part.crop) { sx = part.crop.sx; sy = part.crop.sy; sw = part.crop.sw; sh = part.crop.sh; }
+  else {
+    const sc = Math.max(AW / w, AH / h);
+    sw = AW / sc; sh = AH / sc;
+    sx = (w - sw) / 2; sy = (h - sh) / 2;
+  }
+  const pc = pbCanvas();
+  const px = pc.getContext('2d');
+  px.drawImage(d, sx, sy, sw, sh, ART.x0, ART.y0, AW, AH);
+  px.globalCompositeOperation = 'destination-in';
+  px.filter = 'blur(2px)';
+  px.fillStyle = '#fff';
+  pbWavyPath(px, seed); px.fill();
+  px.filter = 'none';
+  ctx.drawImage(pc, 0, 0);
+  pbRelease(pc);
   const blob = await pbEncode(c);
-  pbRelease(shc); pbRelease(c);                    /* free memory now */
-  decA.release(); if (decB) decB.release();
+  pbRelease(c);
   return { url: URL.createObjectURL(blob), type: blob.type, bytes: blob.size };
+}
+
+/* two photos — or a photo and blank paper — side by side on one spread */
+async function pbBuildSpread(parts, seed) {
+  const c = pbCanvas();
+  const ctx = c.getContext('2d');
+  pbPaintShadow(ctx, seed);
+  await pbPaintPart(ctx, parts[0], LEFT_RECT, seed);
+  if (parts[1]) await pbPaintPart(ctx, parts[1], RIGHT_RECT, seed + 1);
+  else await pbPaintPaper(ctx, RIGHT_RECT, seed + 1);
+  const blob = await pbEncode(c);
+  pbRelease(c);
+  return { url: URL.createObjectURL(blob), type: blob.type, bytes: blob.size };
+}
+
+/* a small copy of a photo, kept so a spread can be rebuilt later without
+   holding the whole original in memory */
+async function pbDownscale(file, maxW) {
+  maxW = maxW || 1800;
+  try {
+    const d = await pbDecode(file);
+    if (d.w <= maxW) {
+      const u = URL.createObjectURL(pbNormalize(file));
+      d.release();
+      return u;
+    }
+    const sc = maxW / d.w;
+    const c = document.createElement('canvas');
+    c.width = Math.round(d.w * sc); c.height = Math.round(d.h * sc);
+    c.getContext('2d').drawImage(d.src, 0, 0, c.width, c.height);
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.88));
+    d.release(); pbRelease(c);
+    return blob ? URL.createObjectURL(blob) : URL.createObjectURL(pbNormalize(file));
+  } catch (e) {
+    try { return URL.createObjectURL(pbNormalize(file)); } catch (e2) { throw e; }
+  }
 }
 
 /* ---------------------------------------------------------- crop editor
@@ -1764,7 +1826,7 @@ function pbPrettyName(name) {
 
 /* build the page objects the book expects (it reads p.url) */
 function pbPageObject(p) {
-  return { file: p.file, title: p.title, place: p.place, url: p.url || p.file };
+  return { file: p.file, title: p.title, place: p.place, url: p.url || p.file, pb: p.pb || null };
 }
 
 function pbSetPages(pages, showIndex) {
@@ -1813,29 +1875,74 @@ async function pbIngest(files) {
 
   const pages = [];
   const failures = [];
-  const units = pbMode === 'single' ? Math.ceil(take.length / 2) : take.length;
+
+  /* keep a small copy of each photo, so a spread can be rebuilt later */
+  const srcs = [];
+  for (let i = 0; i < take.length; i++) {
+    try { srcs.push(await pbDownscale(take[i])); }
+    catch (e) {
+      srcs.push(null);
+      failures.push(pbFileLabel(take[i]) + ', ' + Math.round((take[i].size || 0) / 1024) +
+                    'KB — ' + e.message);
+    }
+  }
+
+  let next = 0;
+
+  /* In single-page mode, if the last spread has an empty facing page, the first
+     new photo belongs there — right next to the page already there — rather
+     than on a new spread. */
+  if (pbMode === 'single' && pbUserMode && PAGES.length) {
+    const li = PAGES.length - 1;
+    const last = PAGES[li];
+    if (last.pb && last.pb.mode === 'single' && last.pb.parts && !last.pb.parts[1] && srcs[0]) {
+      pbProgress.textContent = 'Adding the photo to the facing page\u2026';
+      try {
+        const parts = [last.pb.parts[0], { src: srcs[0], crop: crops[0] }];
+        const made = await pbBuildSpread(parts, last.pb.seed);
+        const title = last.title + ' \u00b7 ' + pbPrettyName(take[0].name);
+        PAGES[li] = pbPageObject({ file: made.url, title: title, place: last.place,
+                                   pb: { mode: 'single', seed: last.pb.seed, parts: parts } });
+        next = 1;
+      } catch (e) {
+        console.warn('the facing page could not be filled', e);
+      }
+    }
+  }
+
+  const rest = take.length - next;
+  const units = pbMode === 'single' ? Math.ceil(rest / 2) : rest;
   for (let u = 0; u < units; u++) {
+    const i0 = next + (pbMode === 'single' ? u * 2 : u);
+    const i1 = pbMode === 'single' ? i0 + 1 : -1;
     pbProgress.textContent = 'Preparing ' + (pbMode === 'single' ? 'spread ' : 'photo ') +
-                             (u + 1) + ' of ' + units + '…';
+                             (u + 1) + ' of ' + units + '\u2026';
     try {
+      const seed = 101 + existing + u;
       if (pbMode === 'single') {
-        const a = take[u * 2], b = take[u * 2 + 1] || null;
-        const made = await pbMakeSpread(a, b, crops[u * 2], crops[u * 2 + 1], 101 + existing + u);
-        const t = pbPrettyName(a.name) + (b ? ' · ' + pbPrettyName(b.name) : '');
-        pages.push({ file: made.url, title: t, place: 'My photo' });
+        const parts = [{ src: srcs[i0], crop: crops[i0] }];
+        if (i1 < take.length && srcs[i1]) parts.push({ src: srcs[i1], crop: crops[i1] });
+        else parts.push(null);
+        const made = await pbBuildSpread(parts, seed);
+        const title = pbPrettyName(take[i0].name) +
+                      (parts[1] ? ' \u00b7 ' + pbPrettyName(take[i1].name) : '');
+        pages.push({ file: made.url, title: title, place: 'My photo',
+                     pb: { mode: 'single', seed: seed, parts: parts } });
       } else {
-        const made = await pbMakePage(take[u], 101 + existing + u, crops[u]);
-        pages.push({ file: made.url, title: pbPrettyName(take[u].name), place: 'My photo' });
+        const part = { src: srcs[i0], crop: crops[i0] };
+        const made = await pbBuildPage(part, seed);
+        pages.push({ file: made.url, title: pbPrettyName(take[i0].name), place: 'My photo',
+                     pb: { mode: 'combined', seed: seed, parts: [part] } });
       }
     } catch (e) {
       console.warn('could not read', e);
-      const f = pbMode === 'single' ? (take[u * 2] || take[u * 2 + 1]) : take[u];
+      const f = take[i0];
       failures.push(pbFileLabel(f) + ', ' + Math.round((f.size || 0) / 1024) + 'KB — ' + e.message);
     }
     await new Promise(r => setTimeout(r, 0));        /* keep the UI responsive */
   }
 
-  if (!pages.length) {
+  if (!pages.length && next === 0) {
     const blocked = /NotReadableError|permission problems|could not be read/i.test(
       failures.join(' '));
     if (blocked) {
@@ -1860,14 +1967,20 @@ async function pbIngest(files) {
     return;
   }
 
-  if (pbUserMode) pbAddPages(pages, existing);       /* append, show the first new page */
-  else { pbSetPages(pages, 0); pbUserMode = true; }  /* first batch replaces the demo */
+  if (pages.length) {
+    if (pbUserMode) pbAddPages(pages, existing);       /* append, show the first new page */
+    else { pbSetPages(pages, 0); pbUserMode = true; }  /* first batch replaces the demo */
+  } else if (next === 1) {
+    M = PAGES.length; turn = null; paint(); applyView();   /* only the facing page changed */
+  }
 
   pbProgress.textContent = '';
   pbWelcome.hidden = true;
   pbAddBtn.hidden = false;
   pbResetBtn.hidden = false;
-  pbStatus('Added ' + pages.length + (pages.length > 1 ? ' pages' : ' page') +
+  const added = pages.length + (next === 1 ? 1 : 0);
+  pbStatus('Added ' + added + (added > 1 ? ' photos' : ' photo') +
+           (next === 1 ? ' (one filled the facing page)' : '') +
            ' — the book now has ' + PAGES.length +
            (failures.length ? ' (' + failures.length + ' skipped: ' + failures[0] + ')' : '') +
            (skipped > 0 ? ' (' + skipped + ' over the ' + PB_MAX + ' limit)' : ''));
@@ -1936,9 +2049,11 @@ pbSetMode(pbMode);      /* label the Add button with the current mode */
 
 /* expose for testing */
 console.log('Photo Book app v' + PB_VERSION + ' — master file');
-window.__pb = { version: PB_VERSION, setMode: pbSetMode, askMode: pbAskMode, makePage: pbMakePage, decode: pbDecode, cropSeries: pbCropSeries, setPages: pbSetPages,
-                addPages: pbAddPages, ingest: pbIngest, ART, AW, AH, MAX: PB_MAX,
-                makeSpread: pbMakeSpread, setMode: m => { pbMode = m; }, getMode: () => pbMode,
+window.__pb = { version: PB_VERSION, setMode: pbSetMode, askMode: pbAskMode,
+                decode: pbDecode, cropSeries: pbCropSeries, buildPage: pbBuildPage,
+                buildSpread: pbBuildSpread, downscale: pbDownscale,
+                setPages: pbSetPages, addPages: pbAddPages, ingest: pbIngest,
+                ART, AW, AH, MAX: PB_MAX, getMode: () => pbMode,
                 state: () => ({ pages: PAGES.length, M: M, idx: idx, userMode: pbUserMode, mode: pbMode }) };
 
 
