@@ -2,6 +2,7 @@
 <!--
   ============================================================================
   ENVELOPE  —  a standalone piece, separate from the book app.
+  v1.1: the envelope's paper now carries the texture the user supplied.
   Same paper, ink and type as the book's pages.
   Touch the wax seal and the flap lifts; the letter inside comes out to read.
   ============================================================================
@@ -23,6 +24,9 @@
   --display:'Instrument Serif',"New York",Georgia,'Times New Roman',serif;
   --font:'Newsreader',"New York",Georgia,'Times New Roman',serif;
   --track-caps:.24em;
+  /* the paper texture, supplied by the user: normalised so only its
+     grain and faint marks remain, then multiplied over each surface */
+  --tex:url(data:image/webp;base64,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);
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
@@ -43,11 +47,14 @@ body{
   position:relative;width:100%;aspect-ratio:1.62;perspective:1400px;
   filter:drop-shadow(0 16px 26px rgba(58,44,26,.16)) drop-shadow(0 3px 6px rgba(58,44,26,.10));
 }
-.env-body{position:absolute;inset:0;border-radius:14px;
-  background:linear-gradient(180deg,#fdf9f4,#f7f1e8);border:1px solid rgba(43,39,33,.10)}
+.env-body{position:absolute;inset:0;border-radius:14px;border:1px solid rgba(43,39,33,.10);
+  background-image:var(--tex),linear-gradient(180deg,#fdf9f4,#f7f1e8);
+  background-size:cover,cover;background-blend-mode:multiply}
 /* the letter, seen peeking inside the closed envelope */
 .letter-peek{
-  position:absolute;left:7%;right:7%;top:9%;height:72%;border-radius:10px;background:#fbf5f0;
+  position:absolute;left:7%;right:7%;top:9%;height:72%;border-radius:10px;
+  background-image:var(--tex),linear-gradient(#fdfaf6,#f8f2e9);
+  background-size:cover,cover;background-blend-mode:multiply;
   border:1px solid rgba(43,39,33,.09);box-shadow:0 4px 12px rgba(58,44,26,.08);z-index:1;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;
 }
@@ -56,7 +63,8 @@ body{
 .letter-peek .ls{font-size:clamp(10px,1.9vw,12px);color:var(--ink-soft);letter-spacing:.05em}
 /* the pocket — the V of an envelope */
 .pocket{position:absolute;inset:0;border-radius:14px;z-index:2;
-  background:linear-gradient(180deg,#fbf6ef,#f2ebe0);
+  background-image:var(--tex),linear-gradient(180deg,#fbf6ef,#f2ebe0);
+  background-size:cover,cover;background-blend-mode:multiply;
   clip-path:polygon(0 0, 50% 46%, 100% 0, 100% 100%, 0 100%);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}
 .pocket::after{content:"";position:absolute;inset:0;
@@ -65,7 +73,8 @@ body{
     linear-gradient(to bottom left,  transparent calc(50% - .6px), rgba(43,39,33,.13) calc(50% - .6px), rgba(43,39,33,.13) calc(50% + .6px), transparent calc(50% + .6px));}
 /* the flap */
 .flap{position:absolute;left:0;right:0;top:0;height:56%;z-index:3;
-  background:linear-gradient(180deg,#f6efe4,#eee6d9);
+  background-image:var(--tex),linear-gradient(180deg,#f6efe4,#eee6d9);
+  background-size:cover,cover;background-blend-mode:multiply;
   clip-path:polygon(0 0, 100% 0, 50% 100%);
   transform-origin:top center;transform:rotateX(0deg);
   transition:transform .7s cubic-bezier(.5,.05,.3,1);
@@ -93,7 +102,8 @@ body{
 .reading{
   position:fixed;left:50%;top:50%;z-index:20;
   width:min(86vw,420px);padding:30px 28px 34px;
-  background:linear-gradient(180deg,#fdfaf6,#f8f2e9);
+  background-image:var(--tex),linear-gradient(180deg,#fdfaf6,#f8f2e9);
+  background-size:cover,cover;background-blend-mode:multiply;
   border:1px solid rgba(43,39,33,.12);border-radius:14px;
   box-shadow:0 24px 50px rgba(58,44,26,.24), 0 6px 14px rgba(58,44,26,.12);
   display:grid;gap:13px;justify-items:center;text-align:center;cursor:pointer;
