@@ -1,0 +1,1950 @@
+<!doctype html>
+<!--
+  PHOTO BOOK APP (hosted) — version 15, 2026-10-02
+  The same app as the single-file master, but it loads the book's images from
+  this same web address instead of carrying them inside itself. Served from a
+  normal https origin, which is what the browser needs to read picked photos.
+-->
+
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meng To</title>
+<meta name="description" content="designer, creator, AI educator — Singapore">
+<style>
+@font-face{font-family:'Instrument Serif';font-style:normal;font-weight:400;font-display:block;
+  src:url(meng-to-sketchbook/instrument-serif.woff2) format('woff2')}
+@font-face{font-family:'Instrument Serif';font-style:italic;font-weight:400;font-display:block;
+  src:url(meng-to-sketchbook/instrument-serif-italic.woff2) format('woff2')}
+@font-face{font-family:'Newsreader';font-style:normal;font-weight:200 600;font-display:swap;
+  src:url(meng-to-sketchbook/newsreader.woff2) format('woff2')}
+
+:root{
+  --paper:#ece7dc;
+  --ink:#2b2721;
+  --ink-soft:rgba(43,39,33,.58);
+  --ink-faint:rgba(43,39,33,.36);
+  --hairline:rgba(43,39,33,.14);
+  --earth:#9a6a3e;
+  --display:'Instrument Serif',"New York",Georgia,'Times New Roman',serif;
+  --font:'Newsreader',"New York",Georgia,'Times New Roman',serif;
+  --track-caps:.24em;
+  --track-nav:.06em;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--font);font-weight:400;background:var(--paper);color:var(--ink);
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+a{color:inherit;text-decoration:none}
+button{font:inherit}
+::selection{background:rgba(43,39,33,.85);color:var(--paper)}
+
+/* the painted ground the whole page sits on */
+.wash{
+  position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background:url(meng-to-sketchbook/bg-wash.webp) center top / cover no-repeat;
+  opacity:.85;
+}
+.wash:after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(236,231,220,.25) 0%,rgba(236,231,220,.72) 58%,var(--paper) 88%);
+}
+
+/* ---------------- top bar ---------------- */
+.top{
+  position:fixed;top:0;left:0;right:0;z-index:500;
+  display:flex;flex-direction:column;align-items:center;gap:11px;
+  padding-inline:clamp(16px,4vw,48px);padding-block:18px 64px;pointer-events:none;text-align:center;
+}
+.top>*{pointer-events:auto}
+.top:before{
+  content:"";position:absolute;inset:0;z-index:-1;
+  background:linear-gradient(180deg,rgba(240,236,226,.94),rgba(240,236,226,.7) 48%,rgba(240,236,226,0));
+  -webkit-backdrop-filter:blur(14px) saturate(.95);backdrop-filter:blur(14px) saturate(.95);
+  -webkit-mask-image:linear-gradient(180deg,#000 46%,transparent);
+  mask-image:linear-gradient(180deg,#000 46%,transparent);
+}
+.top .name{
+  font-family:var(--display);font-size:clamp(24px,2.4vw,30px);letter-spacing:.01em;
+  white-space:nowrap;line-height:1;
+}
+.top nav{
+  display:flex;gap:clamp(14px,2vw,26px);font-size:15px;align-items:center;
+  letter-spacing:var(--track-nav);font-weight:300;
+}
+.top nav a{color:var(--ink-soft);transition:color .2s}
+.top nav a:hover,.top nav a[aria-current]{color:var(--ink)}
+.top nav .top-socials{
+  display:flex;align-items:center;gap:13px;margin-left:2px;padding-left:clamp(12px,1.6vw,20px);
+  border-left:1px solid var(--hairline);
+}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;padding:4px;color:var(--ink-soft);transition:color .2s}
+.icon-btn:hover{color:var(--ink)}
+.top .icon-btn svg{width:16px;height:16px;display:block}
+@media (max-width:640px){
+  .top{padding-inline:12px;padding-block:13px 50px;gap:8px}
+  .top .name{font-size:20px}
+  .top nav{gap:11px;font-size:13px}
+  .top nav .top-socials{gap:9px;padding-left:10px}
+  .top .icon-btn{padding:2px}
+  .top .icon-btn svg{width:14px;height:14px}
+}
+
+/* ---------------- hero ---------------- */
+.hero{
+  position:relative;display:grid;justify-items:center;align-content:center;
+  min-height:100svh;overflow-anchor:none;
+  padding:clamp(112px,13svh,152px) 0 clamp(72px,10svh,120px);
+}
+.botany{
+  position:absolute;bottom:0;width:clamp(120px,15vw,250px);opacity:.5;
+  pointer-events:none;user-select:none;z-index:0;
+}
+.botany.l{left:clamp(-40px,-1vw,0px);bottom:2%}
+.botany.r{right:clamp(-30px,0vw,10px);bottom:-2%;width:clamp(100px,12vw,200px)}
+@media (max-width:900px){.botany{display:none}}
+
+.hero-kicker{
+  font-size:12px;font-weight:400;letter-spacing:var(--track-caps);text-align:center;
+  color:var(--ink-soft);margin:0 0 clamp(22px,3.4vh,40px);text-transform:uppercase;
+}
+.hero-down{
+  position:absolute;bottom:30px;left:50%;transform:translateX(-50%);border:0;background:transparent;
+  padding:10px 14px;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent;
+  animation:cue-breathe 2.6s ease-in-out infinite;z-index:3;
+}
+.hero-down:hover{animation:none;opacity:1}
+@keyframes cue-breathe{0%,100%{opacity:.15}50%{opacity:.7}}
+@media (prefers-reduced-motion:reduce){.hero-down{animation:none;opacity:.5}}
+
+/* ---------------- sketchbook ---------------- */
+.hero,.hero *{-webkit-user-select:none;-moz-user-select:none;user-select:none}
+.hero img{-webkit-user-drag:none;user-drag:none}
+.sb-wrap{display:grid;justify-items:center;gap:20px;width:100%;position:relative;z-index:2}
+.sb-stage{
+  display:flex;align-items:center;justify-content:center;width:100%;
+  position:relative;
+  touch-action:pan-y;
+}
+.sb-arrow{
+  flex:none;display:inline-flex;align-items:center;justify-content:center;padding:6px 2px;
+  border:0;background:transparent;color:var(--ink-faint);cursor:pointer;transition:color .2s;
+  -webkit-tap-highlight-color:transparent;z-index:8;
+}
+.sb-arrow:hover{color:var(--ink)}
+
+/* The box is the book's own untransformed frame: the loupe lives here, on
+   the desk, while only .sb-tilt leans and scales underneath it. */
+.sb-3d{
+  position:relative;flex:1 1;min-width:0;max-width:900px;
+  perspective:1750px;perspective-origin:50% 46%;
+}
+.sb-tilt{
+  position:relative;
+  transform-style:preserve-3d;
+  transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) scale(var(--zoom,1));
+  will-change:transform;
+}
+.sb-book{position:relative;width:100%;aspect-ratio:1760/1240;transform-style:preserve-3d;z-index:1}
+
+/* The book sits on a surface, so its shadow is a soft pool underneath —
+   no box, no filter on the artwork, nothing with an edge of its own.
+   Both blobs fade to zero well inside their own bounds, and both ease
+   off while a leaf is in the air. */
+.sb-cast{position:absolute;pointer-events:none;z-index:0}
+.sb-cast.ambient{
+  left:5%;right:5%;top:27%;bottom:2%;
+  background:radial-gradient(50% 50% at 50% 58%,
+    rgba(58,44,26,.34) 0%,rgba(58,44,26,.19) 40%,rgba(58,44,26,0) 74%);
+  filter:blur(26px);
+  opacity:calc(1 - var(--shade,0) * .42);
+}
+.sb-cast.contact{
+  left:9%;right:9%;top:62%;bottom:10%;
+  background:radial-gradient(50% 44% at 50% 42%,
+    rgba(44,32,14,.40) 0%,rgba(44,32,14,.17) 48%,rgba(44,32,14,0) 78%);
+  filter:blur(11px);
+  opacity:calc(1 - var(--shade,0) * .5);
+}
+.sb-cast.hair{
+  left:12%;right:12%;top:70%;bottom:17%;
+  background:radial-gradient(50% 52% at 50% 40%,
+    rgba(40,28,10,.34) 0%,rgba(40,28,10,0) 76%);
+  filter:blur(4px);
+  opacity:calc(1 - var(--shade,0) * .62);
+}
+.sb-full{position:absolute;inset:0}
+.sb-full img{width:100%;height:auto;display:block}
+.sb-half{position:absolute;top:0;bottom:0;width:50%;overflow-x:clip;overflow-y:visible}
+.sb-half.left{left:0}
+.sb-half.right{left:50%}
+.sb-half-img{width:200%;max-width:none;height:auto;display:block}
+.sb-half-img.right{margin-left:-100%}
+/* the shadow the lifting leaf throws onto the page beneath it */
+.gutter-shade{
+  position:absolute;top:var(--pg,21.8%);bottom:var(--pg,21.8%);width:46%;
+  pointer-events:none;opacity:calc(var(--shade,0) * .62);
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 5.2%,#000 94.8%,transparent 100%);
+  mask-image:linear-gradient(180deg,transparent 0,#000 5.2%,#000 94.8%,transparent 100%);
+}
+.gutter-shade.left{right:0;background:linear-gradient(270deg,rgba(52,38,20,.30),rgba(52,38,20,0) 82%)}
+.gutter-shade.right{left:0;background:linear-gradient(90deg,rgba(52,38,20,.24),rgba(52,38,20,0) 82%)}
+
+/* ---- the turning leaf: nested strips forming a curved surface ---- */
+.curl{
+  position:absolute;top:0;height:100%;
+  width:calc(var(--bw,0px) * var(--span));
+  transform-style:preserve-3d;z-index:6;
+}
+.curl.next{left:50%;transform-origin:left center;transform:rotateY(calc(-1 * var(--tt,0deg)))}
+.curl.prev{right:50%;transform-origin:right center;transform:rotateY(var(--tt,0deg))}
+.strip{
+  position:absolute;top:0;height:100%;
+  width:calc(var(--bw,0px) * var(--span) / var(--n));
+  transform-style:preserve-3d;
+}
+.curl.next .strip{transform-origin:left center}
+.curl.prev .strip{transform-origin:right center}
+.curl.next>.strip{left:0}
+.curl.prev>.strip{right:0;left:auto}
+.curl.next .strip .strip{left:100%;transform:rotateY(var(--td,0deg))}
+.curl.prev .strip .strip{right:100%;transform:rotateY(calc(-1 * var(--td,0deg)))}
+.face{
+  position:absolute;top:0;bottom:0;left:0;right:-1.1px;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  background-repeat:no-repeat;background-size:var(--bw,0px) auto;
+}
+.face.back{transform:rotateY(180deg)}
+.face .sh,.face .gl{
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 5.2%,#000 94.8%,transparent 100%);
+  mask-image:linear-gradient(180deg,transparent 0,#000 5.2%,#000 94.8%,transparent 100%);
+}
+.strip.edge .face .sh,.strip.edge .face .gl{
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 9%,#000 91%,transparent 100%),var(--hf);
+  mask-image:linear-gradient(180deg,transparent 0,#000 9%,#000 91%,transparent 100%),var(--hf);
+  -webkit-mask-composite:source-in;mask-composite:intersect;
+}
+.curl.next .strip.edge .face.front,.curl.prev .strip.edge .face.back{
+  --hf:linear-gradient(90deg,#000 0 22%,transparent 96%);
+}
+.curl.next .strip.edge .face.back,.curl.prev .strip.edge .face.front{
+  --hf:linear-gradient(270deg,#000 0 22%,transparent 96%);
+}
+.face .sh{position:absolute;left:0;right:0;top:var(--pg,21.8%);bottom:var(--pg,21.8%);pointer-events:none}
+.curl.next .face.front .sh,.curl.prev .face.back .sh{
+  background:linear-gradient(90deg,rgba(58,43,20,var(--a1,0)),rgba(58,43,20,var(--a2,0)));
+}
+.curl.next .face.back .sh,.curl.prev .face.front .sh{
+  background:linear-gradient(90deg,rgba(58,43,20,var(--a2,0)),rgba(58,43,20,var(--a1,0)));
+}
+.face .gl{
+  position:absolute;left:0;right:0;top:var(--pg,21.8%);bottom:var(--pg,21.8%);
+  pointer-events:none;background:#fffaf0;
+  opacity:calc(var(--shade,0) * var(--lit,1) * var(--lit,1) * .20);
+}
+
+/* ---- the loupe: a real magnifier lying on the page.  Pick it up and
+       drag it across the book; it stays where you put it. ---- */
+.loupe{
+  position:absolute;left:0;top:0;
+  width:var(--lr,270px);height:var(--lr,270px);
+  pointer-events:none;z-index:80;opacity:0;
+  transition:opacity .25s ease;
+  will-change:transform;
+}
+.loupe.on{opacity:1}
+.loupe.held .ring{cursor:grabbing}
+.loupe .ring{
+  position:absolute;inset:0;border-radius:50%;
+  pointer-events:auto;cursor:grab;
+  padding:calc(var(--lr,270px) * .058);
+  box-shadow:
+    0 1px 2px rgba(58,44,26,.30),
+    0 10px 18px rgba(58,44,26,.24),
+    0 26px 40px rgba(58,44,26,.20),
+    0 48px 66px rgba(58,44,26,.13);
+}
+/* the bezel is an annulus, so the glass really is see-through */
+.loupe .ring:before{
+  content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  background:linear-gradient(146deg,
+    #fdf7e9 0%,#e6d7b4 14%,#b69d70 32%,#7d6740 50%,
+    #cdbb92 66%,#f4ead3 80%,#9b8459 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,.8),
+    inset 0 -2px 3px rgba(70,52,26,.5);
+  -webkit-mask-image:radial-gradient(circle closest-side at 50% 50%,transparent 0 88.2%,#000 89.8% 100%);
+  mask-image:radial-gradient(circle closest-side at 50% 50%,transparent 0 88.2%,#000 89.8% 100%);
+}
+/* the handle, drawn before the bezel so the ring covers its inner end */
+.loupe .grip{
+  position:absolute;left:50%;top:50%;
+  width:calc(var(--lr,270px) * .74);height:calc(var(--lr,270px) * .125);
+  transform-origin:0 50%;
+  transform:rotate(40deg) translate(calc(var(--lr,270px) * .33),-50%);
+  border-radius:calc(var(--lr,270px) * .06);
+  pointer-events:auto;cursor:grab;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.46) 0 13%,rgba(255,255,255,0) 44%,
+                    rgba(0,0,0,.26) 100%),
+    linear-gradient(90deg,#d9bd82 0 14%,#a9884e 14% 20%,#6d4c2b 20% 62%,
+                    #5a3d22 62% 92%,#7a563180 92% 100%);
+  box-shadow:0 8px 15px rgba(58,44,26,.26),0 18px 26px rgba(58,44,26,.14);
+}
+.lens{
+  position:relative;display:block;width:100%;height:100%;border-radius:50%;
+  background-repeat:no-repeat;overflow:hidden;
+  box-shadow:
+    inset 0 0 0 1px rgba(52,40,22,.55),
+    inset 0 4px 12px rgba(40,30,14,.28),
+    inset 0 -7px 16px rgba(255,250,240,.14);
+}
+.lens .mag{display:none}
+/* A second copy of the book, sitting beside the glass outside the tilt, and
+   scaled about whichever page point the glass is currently over. */
+.zoomwrap{
+  position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2;
+  opacity:0;
+}
+.zoominner{position:absolute;inset:0;transform-origin:0 0}
+.lens:before,.lens:after{content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none}
+.lens:before{z-index:1}
+.lens:after{z-index:2}
+/* the glass bends and darkens toward its rim, with a faint colour fringe */
+.lens:before{
+  background:radial-gradient(circle at 50% 50%,
+    rgba(0,0,0,0) 54%,rgba(58,44,26,.10) 76%,rgba(46,34,16,.34) 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(130,162,196,.26),
+    inset 0 0 0 4px rgba(206,158,112,.15);
+}
+/* the dome: one broad specular and a tight crescent opposite it */
+.lens:after{
+  background:
+    radial-gradient(36% 26% at 29% 19%,rgba(255,255,255,.30),rgba(255,255,255,0) 76%),
+    radial-gradient(24% 16% at 74% 86%,rgba(255,255,255,.12),rgba(255,255,255,0) 80%),
+    linear-gradient(150deg,rgba(255,255,255,.06) 0 18%,rgba(255,255,255,0) 42%);
+}
+
+/* ---- controls ---- */
+.sb-tools{
+  display:flex;align-items:center;gap:6px;
+  border:1px solid var(--hairline);border-radius:999px;
+  padding:5px 7px;background:rgba(250,246,238,.62);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+}
+.tool{
+  width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;
+  border:0;border-radius:50%;background:transparent;color:var(--ink-soft);
+  cursor:pointer;transition:background-color .18s ease,color .18s ease;
+}
+.tool:hover{background:rgba(255,252,244,.9);color:var(--ink)}
+.tool[aria-pressed="true"]{background:rgba(154,106,62,.16);color:var(--earth)}
+.tool:disabled{opacity:.32;cursor:default;background:transparent}
+.tool svg{width:15px;height:15px;display:block}
+.tool-sep{width:1px;height:17px;background:var(--hairline);margin:0 2px}
+.zoom-read{
+  font-size:11px;letter-spacing:.1em;color:var(--ink-faint);
+  min-width:40px;text-align:center;font-variant-numeric:tabular-nums;
+}
+@media (pointer:coarse){.loupe{display:none}}
+
+.sb-zone{position:absolute;top:0;bottom:0;border:0;background:transparent;cursor:grab;z-index:60;-webkit-tap-highlight-color:transparent}
+.sb-zone:active{cursor:grabbing}
+.sb-prev{left:0;width:50%}
+.sb-next{right:0;width:50%}
+
+.sb-captions{display:grid;justify-items:center}
+.sb-captions>*{grid-area:1/1;margin:0}
+.sb-caption{font-size:13px;letter-spacing:var(--track-caps);text-transform:uppercase;color:var(--ink-soft);
+  animation:sb-cap-in .5s ease both}
+.sb-caption.live{animation:none}
+@keyframes sb-cap-in{0%{opacity:0}}
+@keyframes sb-cap-out{to{opacity:0}}
+.sb-hint{
+  margin:0;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);
+  transition:opacity .4s ease;
+}
+.sb-hint.gone{opacity:0}
+.sb-wrap.intro .sb-full img,.sb-wrap.intro .sb-half-img{filter:url(#sb-mblur-1)}
+.sb-wrap.intro.b2 .sb-full img,.sb-wrap.intro.b2 .sb-half-img{filter:url(#sb-mblur-2)}
+.sb-wrap.intro .sb-caption{animation:none}
+.sb-wrap.intro .sb-caption.cap-out{display:none}
+@media (max-width:640px){
+  .hero-kicker{font-size:10.5px;letter-spacing:.16em}
+  .sb-wrap{width:100vw;margin-inline:calc(50% - 50vw)}
+  .sb-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:70;padding:12px 6px}
+  .sb-arrow.left{left:2px}
+  .sb-arrow.right{right:2px}
+  .sb-3d{max-width:none}
+  .sb-hint{font-size:9.5px;letter-spacing:.1em;padding:0 16px;text-align:center}
+}
+
+/* ---------------- painted rules + sections ---------------- */
+.rule{
+  display:block;width:min(1080px,86vw);margin:clamp(30px,6vh,64px) auto;
+  height:clamp(26px,4vw,46px);
+  background:url(meng-to-sketchbook/divider.webp) center / 100% auto no-repeat;
+  opacity:.5;
+}
+.rule.short{width:min(420px,52vw);opacity:.4}
+.section-label{
+  font-size:11px;letter-spacing:var(--track-caps);text-transform:uppercase;
+  color:var(--ink-faint);margin:0 0 18px;
+}
+.about{
+  position:relative;max-width:1080px;margin:0 auto;
+  padding:0 clamp(20px,5vw,48px);
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:clamp(24px,5vw,60px);align-items:start;
+}
+.bio{font-size:clamp(17px,1.7vw,20px);line-height:1.74;letter-spacing:.005em;margin:0;font-weight:300;max-width:56ch}
+.bio-link{color:var(--ink);text-decoration:underline;text-decoration-color:rgba(43,39,33,.28);
+  text-underline-offset:4px;transition:text-decoration-color .2s}
+.bio-link:hover{text-decoration-color:var(--ink)}
+.bloom{width:clamp(150px,17vw,260px);opacity:.9;user-select:none;align-self:center}
+@media (max-width:760px){
+  .about{grid-template-columns:1fr}
+  .bloom{width:170px;justify-self:center}
+}
+
+.plates{max-width:1080px;margin:0 auto;padding:0 clamp(20px,5vw,48px)}
+.plate-list{list-style:none;margin:0;padding:0;border-top:1px solid var(--hairline)}
+.plate{
+  display:grid;grid-template-columns:3.4em minmax(0,1fr) auto;gap:18px;align-items:baseline;
+  width:100%;padding:15px 4px;border:0;border-bottom:1px solid var(--hairline);
+  background:transparent;text-align:left;cursor:pointer;color:inherit;
+  transition:background-color .22s ease,padding-left .22s ease;
+}
+.plate:hover,.plate[aria-current="true"]{background:rgba(255,252,244,.5);padding-left:12px}
+.plate .n{font-size:12px;color:var(--ink-faint);letter-spacing:var(--track-nav)}
+.plate .t{font-family:var(--display);font-size:clamp(19px,2.1vw,26px)}
+.plate .p{font-size:12.5px;color:var(--ink-faint);letter-spacing:.08em;text-transform:uppercase;text-align:right}
+.plate[aria-current="true"] .p{color:var(--earth)}
+
+.foot{font-size:11.5px;letter-spacing:var(--track-caps);text-transform:uppercase;
+  color:var(--ink-faint);text-align:center;padding-bottom:44px}
+
+/* ---- low-end / mobile: drop the costly fixed blurs ---- */
+@media (max-width:640px), (pointer:coarse){
+  .top:before{
+    -webkit-backdrop-filter:none;backdrop-filter:none;
+    background:linear-gradient(180deg,rgba(240,236,226,.97),rgba(240,236,226,.88) 48%,rgba(240,236,226,0));
+  }
+  .sb-tools{
+    -webkit-backdrop-filter:none;backdrop-filter:none;
+    background:rgba(250,246,238,.92);
+  }
+}
+/* ---- PHOTO BOOK app chrome ---- */
+#pbWelcome{
+  position:fixed;inset:0;z-index:900;display:flex;align-items:center;justify-content:center;
+  background:rgba(236,231,220,.86);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+  padding:24px;
+}
+#pbWelcome[hidden]{display:none}
+.pb-card{
+  max-width:420px;background:rgba(250,246,238,.97);border:1px solid rgba(43,39,33,.14);
+  border-radius:18px;padding:26px 24px;text-align:center;
+  box-shadow:0 10px 30px rgba(58,44,26,.18),0 2px 6px rgba(58,44,26,.10);
+}
+.pb-card h1{
+  font-family:var(--display,'Georgia',serif);font-weight:400;font-size:27px;line-height:1.15;
+  margin:0 0 10px;color:var(--ink,#2b2721);letter-spacing:.01em;
+}
+.pb-card p{
+  font-size:14.5px;line-height:1.5;color:rgba(43,39,33,.72);margin:0 0 18px;
+}
+.pb-card p b{color:rgba(43,39,33,.88)}
+.pb-card p.pb-note{font-size:12.5px;color:rgba(43,39,33,.55);margin:14px 0 0;min-height:16px}
+.pb-btn{
+  font:inherit;font-size:14px;letter-spacing:.06em;text-transform:uppercase;
+  padding:12px 22px;border-radius:999px;border:1px solid rgba(43,39,33,.7);
+  background:#2b2721;color:#f2ede3;cursor:pointer;
+}
+.pb-btn:active{transform:translateY(1px)}
+#pbAddMore,#pbReset{
+  position:fixed;z-index:800;bottom:18px;border-radius:999px;cursor:pointer;
+  border:1px solid rgba(43,39,33,.35);background:rgba(250,246,238,.94);
+  color:#2b2721;font:inherit;font-size:13.5px;padding:11px 16px;
+  box-shadow:0 4px 14px rgba(58,44,26,.16);
+}
+#pbAddMore{right:16px}
+#pbReset{left:16px}
+#pbAddMore[hidden],#pbReset[hidden]{display:none}
+#pbStatus{
+  position:fixed;left:50%;bottom:74px;transform:translateX(-50%);z-index:850;
+  background:rgba(43,39,33,.92);color:#f4efe5;font-size:13px;line-height:1.3;
+  padding:9px 16px;border-radius:999px;max-width:88vw;text-align:center;
+  box-shadow:0 6px 18px rgba(0,0,0,.22);
+}
+#pbStatus[hidden]{display:none}
+
+/* ============================================================
+   APP MODE — the book and nothing else.
+   Hides the page chrome (header, bio, plates list, footer and
+   the decorative drawings) and gives the book the whole screen.
+   ============================================================ */
+body.pb-app .top,
+body.pb-app .hero-kicker,
+body.pb-app .hero-down,
+body.pb-app .botany,
+body.pb-app .bloom,
+body.pb-app .about,
+body.pb-app .plates,
+body.pb-app .foot{ display:none !important; }
+
+body.pb-app .hero{
+  padding:clamp(12px,3svh,40px) 0;
+  min-height:100svh;
+  align-content:center;
+}
+body.pb-app .sb-wrap{ width:min(94vw,1080px); }
+
+/* ---- crop editor ---- */
+#pbCrop{position:fixed;inset:0;z-index:950;display:flex;align-items:center;justify-content:center;
+  background:rgba(28,24,20,.93);padding:14px}
+.pbc-card{width:min(94vw,780px);display:flex;flex-direction:column;gap:12px}
+.pbc-head{color:#f0e9dc;font-size:13.5px;line-height:1.35;text-align:center;letter-spacing:.02em}
+.pbc-stage{position:relative;width:100%;height:min(60vh,520px);overflow:hidden;
+  border-radius:12px;background:#17140f;touch-action:none;cursor:grab}
+.pbc-stage:active{cursor:grabbing}
+.pbc-stage img{position:absolute;display:block;user-select:none;pointer-events:none;
+  -webkit-user-drag:none}
+.pbc-frame{position:absolute;pointer-events:none;border:1.5px solid rgba(255,255,255,.9);
+  border-radius:8px;box-shadow:0 0 0 9999px rgba(0,0,0,.55)}
+.pbc-frame.active{border-color:#fff;box-shadow:0 0 0 9999px rgba(0,0,0,.62)}
+.pbc-actions{display:flex;gap:10px;justify-content:center}
+.pbc-btn{font:inherit;font-size:13.5px;letter-spacing:.05em;text-transform:uppercase;
+  padding:11px 20px;border-radius:999px;cursor:pointer;border:1px solid rgba(240,233,220,.55);
+  background:#f0e9dc;color:#2b2721}
+.pbc-btn.ghost{background:transparent;color:#f0e9dc}
+.pbc-btn:active{transform:translateY(1px)}
+
+
+/* ---- crop editor: zoom row ---- */
+.pbc-zoom{display:flex;align-items:center;gap:12px;justify-content:center;
+  color:#f0e9dc;font-size:12.5px;letter-spacing:.04em}
+.pbc-zoomlabel{text-transform:uppercase;opacity:.8}
+.pbc-zoomval{min-width:38px;text-align:left;opacity:.9}
+#pbcZoom{-webkit-appearance:none;appearance:none;width:min(52vw,260px);height:26px;
+  background:transparent;cursor:pointer}
+#pbcZoom::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:rgba(240,233,220,.35)}
+#pbcZoom::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;
+  border-radius:50%;background:#f0e9dc;margin-top:-8px;border:0}
+#pbcZoom::-moz-range-track{height:4px;border-radius:2px;background:rgba(240,233,220,.35)}
+#pbcZoom::-moz-range-thumb{width:20px;height:20px;border:0;border-radius:50%;background:#f0e9dc}
+
+
+.pbc-skip{background:none;border:0;color:rgba(240,233,220,.6);font:inherit;font-size:12px;
+  text-decoration:underline;cursor:pointer;padding:2px;align-self:center}
+.pbc-btn[style*="hidden"]{visibility:hidden}
+
+
+/* ---- mode chooser on the welcome card ---- */
+.pb-modes{display:flex;gap:8px;justify-content:center;margin:0 0 16px;flex-wrap:wrap}
+.pb-modebtn{font:inherit;font-size:12.5px;line-height:1.25;padding:10px 14px;border-radius:12px;
+  cursor:pointer;border:1px solid rgba(43,39,33,.28);background:rgba(255,255,255,.5);color:#3a342c}
+.pb-modebtn.active{background:#2b2721;color:#f2ede3;border-color:#2b2721}
+
+
+/* ---- layout-mode sheet (shown when adding to an existing book) ---- */
+#pbModeSheet{position:fixed;inset:0;z-index:940;display:flex;align-items:center;
+  justify-content:center;background:rgba(28,24,20,.55);padding:20px}
+#pbModeSheet[hidden]{display:none}
+.pb-sheet{background:rgba(250,246,238,.99);border:1px solid rgba(43,39,33,.14);
+  border-radius:16px;padding:22px 20px 18px;max-width:380px;width:100%;text-align:center;
+  box-shadow:0 14px 38px rgba(58,44,26,.28)}
+.pb-sheet h2{font-family:var(--display,'Georgia',serif);font-weight:400;font-size:19px;
+  line-height:1.25;margin:0 0 16px;color:#2b2721}
+.pb-sheet .pb-modes{flex-direction:column;margin:0 0 14px}
+.pb-sheet .pb-modebtn{display:block;width:100%;margin-bottom:8px;padding:13px 14px;font-size:13.5px}
+.pb-sheet .pb-modebtn.active{background:#2b2721;color:#f2ede3;border-color:#2b2721}
+.pb-btn.ghost{background:transparent;color:#3a342c;border-color:rgba(43,39,33,.35)}
+
+</style>
+</head>
+<body>
+<script>window.PB_APP=true;</script>
+<div class="wash" aria-hidden="true"></div>
+<main class="page home">
+
+  <header class="top">
+    <a class="name" href="#">Meng To</a>
+    <nav>
+      <a href="#plates">Journal</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+      <div class="top-socials">
+        <a href="#" class="icon-btn" aria-label="X"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.7 2.6h3.3l-7.2 8.2 8.5 11.2h-6.7l-5.2-6.9-6 6.9H1.1l7.7-8.8L.7 2.6h6.9l4.7 6.3 5.4-6.3Zm-1.2 17.5h1.8L7.6 4.4H5.7l10.8 15.7Z"/></svg></a>
+        <a href="#" class="icon-btn" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.9 3.5a2.1 2.1 0 1 1 0 4.2 2.1 2.1 0 0 1 0-4.2ZM3.1 9.3h3.6v11.6H3.1V9.3Zm6 0h3.4v1.6h.05c.48-.9 1.65-1.85 3.4-1.85 3.63 0 4.3 2.35 4.3 5.4v6.45h-3.6v-5.72c0-1.36-.02-3.12-1.92-3.12-1.92 0-2.22 1.48-2.22 3.02v5.82H9.1V9.3Z"/></svg></a>
+        <a href="#" class="icon-btn" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="2.6" y="2.6" width="18.8" height="18.8" rx="5.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none"/></svg></a>
+        <a href="#contact" class="icon-btn" aria-label="Email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="2.4" y="4.6" width="19.2" height="14.8" rx="2.4"/><path d="m3.2 6.4 8.8 6.6 8.8-6.6"/></svg></a>
+      </div>
+    </nav>
+  </header>
+
+  <section id="sketchbook" class="hero">
+    <img class="botany l" src="meng-to-sketchbook/botany-left.webp" alt="" aria-hidden="true">
+    <img class="botany r" src="meng-to-sketchbook/botany-right.webp" alt="" aria-hidden="true">
+
+    <p class="hero-kicker">Designer / Creator / AI Educator / Founder @ Singapore</p>
+
+    <div class="sb-wrap" id="sbWrap">
+      <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <filter id="sb-mblur-1"><feGaussianBlur stdDeviation="5 0"/></filter>
+        <filter id="sb-mblur-2"><feGaussianBlur stdDeviation="14 0"/></filter>
+      </svg>
+      <div class="sb-stage" id="sbStage">
+        <button class="sb-arrow left" id="sbLeft" aria-label="previous page">
+          <svg viewBox="0 0 14 44" width="14" height="44" fill="none" aria-hidden="true"><polyline points="11,3 3,22 11,41" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="sb-3d" id="sb3d">
+          <div class="sb-tilt" id="sbTilt">
+            <div class="sb-cast ambient" aria-hidden="true"></div>
+            <div class="sb-cast contact" aria-hidden="true"></div>
+            <div class="sb-cast hair" aria-hidden="true"></div>
+            <div class="sb-book" id="sbBook"></div>
+          </div>
+          <div class="zoomwrap" id="zoomWrap" aria-hidden="true"><div class="zoominner" id="zoomInner"></div></div>
+          <div class="loupe" id="loupe"><span class="grip"></span><span class="ring"><span class="lens" id="loupeLens"><span class="mag" id="loupeMag"></span></span></span></div>
+        </div>
+        <button class="sb-arrow right" id="sbRight" aria-label="next page">
+          <svg viewBox="0 0 14 44" width="14" height="44" fill="none" aria-hidden="true"><polyline points="3,3 11,22 3,41" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="sb-captions" id="sbCaptions"></div>
+      <div class="sb-tools" role="group" aria-label="view controls">
+        <button class="tool" id="zOut" aria-label="zoom out"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="8.6" cy="8.6" r="5.6"/><path d="M12.8 12.8 17.4 17.4M6.2 8.6h4.8"/></svg></button>
+        <span class="zoom-read" id="zRead">100%</span>
+        <button class="tool" id="zIn" aria-label="zoom in"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="8.6" cy="8.6" r="5.6"/><path d="M12.8 12.8 17.4 17.4M6.2 8.6h4.8M8.6 6.2v4.8"/></svg></button>
+        <span class="tool-sep" aria-hidden="true"></span>
+        <button class="tool" id="loupeBtn" aria-label="magnifier" aria-pressed="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="8.8" cy="8.8" r="5.8"/><path d="M13 13l4.4 4.4"/><path d="M6.4 7.2a3.2 3.2 0 0 1 2.4-1.4" opacity=".55"/></svg></button>
+      </div>
+      <p class="sb-hint" id="sbHint">Drag the page to turn · Drag the glass across it</p>
+    </div>
+
+    <button class="hero-down" id="heroDown" aria-label="scroll to about">
+      <svg viewBox="0 0 44 22" width="34" height="17" fill="none" aria-hidden="true">
+        <polyline points="3,3 22,11 41,3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+        <polyline points="3,11 22,19 41,11" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </section>
+
+  <div class="rule" aria-hidden="true"></div>
+
+  <section id="about" class="about">
+    <div>
+      <p class="section-label">About</p>
+      <p class="bio">Meng To is a designer, creator, and AI educator based in Singapore. He is the founder of <a class="bio-link" href="#">Design+Code</a>, where for over a decade he has taught designers and developers to build real apps — from Sketch and Xcode through SwiftUI, and now the AI tools that let one person ship what used to take a team. His work lives on the seam between craft and code: teaching designers to build, and builders to see. This sketchbook is the other half of that — the city looked at slowly, in <a class="bio-link" href="#">ink and a little colour</a>: shophouse shutters, hawker tents, the bay at dusk.</p>
+    </div>
+    <img class="bloom" src="meng-to-sketchbook/bloom.webp" alt="" aria-hidden="true">
+  </section>
+
+  <div class="rule short" aria-hidden="true"></div>
+
+  <section id="plates" class="plates">
+    <p class="section-label">Plates</p>
+    <ol class="plate-list" id="plateList"></ol>
+  </section>
+
+  <div class="rule short" aria-hidden="true"></div>
+  <p class="foot" id="contact">Singapore · Sketchbook · <a href="#" class="bio-link">hello@mengto.com</a></p>
+</main>
+
+<script>
+/* =====================================================================
+   Meng To — sketchbook hero.
+   Spreads are transparent PNGs of an open sketchbook generated with
+   Higgsfield.  The leaf that turns is a real curved surface: a chain of
+   nested strips whose tangent sweeps through an arc, so the page bends
+   the way paper bends instead of pivoting like a flat door.
+   ===================================================================== */
+const Q=new URLSearchParams(location.search);
+const DIR='meng-to-sketchbook/';
+const PAGES=[
+  {file:'phone-page-7.webp',       title:'Oppo Find X9 Ultra',        place:'My Showcase'},
+  {file:'festive-page-7.webp',     title:'Festive Radiance',          place:'Festival of Lights'},
+  {file:'marina-bay-sands.webp',   title:'Marina Bay Sands',          place:'Bayfront'},
+  {file:'gardens-by-the-bay.webp', title:'Gardens by the Bay',        place:'Supertree Grove'},
+  {file:'merlion.webp',            title:'The Merlion',               place:'Merlion Park'},
+  {file:'buddha-tooth.webp',       title:'Buddha Tooth Relic Temple', place:'Chinatown'},
+  {file:'joo-chiat.webp',          title:'Joo Chiat Shophouses',      place:'Katong'},
+  {file:'lau-pa-sat.webp',         title:'Lau Pa Sat',                place:'Raffles Quay'},
+  {file:'marina-bay-skyline.webp', title:'Marina Bay Skyline',        place:'The Bay'},
+  {file:'singapore-river.webp',    title:'Singapore River',           place:'Boat Quay'},
+  {file:'botanic-gardens.webp',    title:'Botanic Gardens',           place:'Tanglin'}
+];
+PAGES.forEach(p=>p.url=DIR+p.file);
+let M=PAGES.length; const LAND=6;
+
+const wrap=document.getElementById('sbWrap');
+const stage=document.getElementById('sbStage');
+const sb3d=document.getElementById('sb3d');
+const book=document.getElementById('sbBook');
+const capBox=document.getElementById('sbCaptions');
+const hint=document.getElementById('sbHint');
+const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* LITE: phones, tablets and low-RAM devices. Halves the leaf strips and
+   skips the magnifier's second copy of the book, which is the single
+   most expensive thing this page does while a glass drag is active.  */
+const LITE=matchMedia('(max-width: 640px), (pointer: coarse)').matches
+          ||(navigator.deviceMemory||8)<4;
+
+/* ------------------------------------------------ the turning leaf */
+const N=LITE?8:18;      /* strips — enough for a smooth curve          */
+const SPAN=0.449;      /* gutter → outer page edge, as a fraction     */
+const BETA=0.60;       /* peak curl of the arc, radians              */
+let idx=0, turn=null;  /* turn = {dir, from, to, t}                   */
+let strips=[];         /* the chain, kept for per-frame lighting       */
+
+function el(t,c){const e=document.createElement(t);if(c)e.className=c;return e}
+function imgEl(i,side){
+  const im=new Image();im.className='sb-half-img '+side;
+  im.draggable=false;im.alt='';im.src=PAGES[i].url;return im;
+}
+
+function halfEl(pos,i){
+  const d=el('div','sb-half '+pos);
+  d.appendChild(imgEl(i,pos));
+  d.appendChild(el('div','gutter-shade '+pos));
+  return d;
+}
+/* build the strip chain once per turn; background offsets are pure
+   geometry, so they never need touching again while it animates */
+function buildCurl(dir,from,to){
+  strips=[];
+  const c=el('div','curl '+dir);
+  c.style.setProperty('--n',N);
+  c.style.setProperty('--span',SPAN);
+  let host=c;
+  for(let i=0;i<N;i++){
+    const s=el('div','strip');
+    s.style.setProperty('--i',i);
+    const gut='calc(var(--bw) * 0.5)';
+    const sw='calc(var(--bw) * '+SPAN+' / '+N+')';
+    const A='calc(-1 * ('+gut+' + '+i+' * '+sw+'))';         /* faces the from-page  */
+    const B='calc('+(i+1)+' * '+sw+' - '+gut+')';            /* faces the to-page    */
+    const f=el('div','face front'), b=el('div','face back');
+    const dress=(e,url,px)=>{
+      e.style.backgroundImage='url('+url+')';
+      e.style.backgroundPositionX=px;
+    };
+    dress(f,PAGES[from].url, dir==='next'?A:B);
+    dress(b,PAGES[to].url,   dir==='next'?B:A);
+    f.appendChild(el('div','sh'));f.appendChild(el('div','gl'));
+    b.appendChild(el('div','sh'));b.appendChild(el('div','gl'));
+    s.appendChild(f);s.appendChild(b);
+    if(i===N-1)s.classList.add('edge');
+    host.appendChild(s);host=s;
+    strips.push(s);
+  }
+  return c;
+}
+function applyTurn(t){
+  const th=Math.PI*t;                       /* how far the leaf has swung */
+  const beta=BETA*Math.sin(Math.PI*t);      /* it is flat at both ends    */
+  const D=180/Math.PI;
+  const tt=th+beta, td=2*beta/N;
+  sb3d.style.setProperty('--tt',(tt*D).toFixed(2)+'deg');
+  sb3d.style.setProperty('--td',(td*D).toFixed(3)+'deg');
+  sb3d.style.setProperty('--shade',Math.sin(Math.PI*t).toFixed(3));
+  fadeCaption(t);
+  for(let i=0;i<strips.length;i++){
+    const l1=Math.abs(Math.cos(tt-i*td));        /* facing at this strip's near edge */
+    const l2=Math.abs(Math.cos(tt-(i+1)*td));    /* ...and at its far edge           */
+    const st=strips[i].style;
+    st.setProperty('--lit',l1.toFixed(3));
+    st.setProperty('--a1',((1-l1)*.62).toFixed(3));
+    st.setProperty('--a2',((1-l2)*.62).toFixed(3));
+  }
+}
+function paint(){
+  book.textContent='';
+  if(!turn){
+    const f=el('div','sb-full');
+    const im=new Image();im.src=PAGES[idx].url;im.alt=PAGES[idx].title;
+    im.draggable=false;
+    f.appendChild(im);book.appendChild(f);
+    sb3d.style.setProperty('--shade','0');
+  }else{
+    const next=turn.dir==='next';
+    book.appendChild(halfEl('left', next?turn.from:turn.to));
+    book.appendChild(halfEl('right',next?turn.to:turn.from));
+    book.appendChild(buildCurl(turn.dir,turn.from,turn.to));
+    applyTurn(turn.t);
+  }
+  const a=el('button','sb-zone sb-prev'),b=el('button','sb-zone sb-next');
+  a.setAttribute('aria-label','previous page');b.setAttribute('aria-label','next page');
+  book.appendChild(a);book.appendChild(b);
+  layout();
+  caption();
+  marks();
+  if(typeof syncZoomLayer==='function')syncZoomLayer();
+  if(typeof placeLoupe==='function')placeLoupe();
+}
+function caption(){
+  capBox.textContent='';
+  capOut=capIn=null;
+  if(turn){
+    capOut=el('p','sb-caption live');capOut.textContent=PAGES[turn.from].title;capBox.appendChild(capOut);
+    capIn=el('p','sb-caption live');capIn.textContent=PAGES[turn.to].title;capBox.appendChild(capIn);
+    fadeCaption(turn.t);
+  }else{
+    const p=el('p','sb-caption');p.textContent=PAGES[idx].title;capBox.appendChild(p);
+  }
+}
+let capOut=null,capIn=null;
+function fadeCaption(t){
+  if(!capOut||!capIn)return;
+  /* the old title is gone before the new one arrives, so they never
+     sit on top of each other mid-drag */
+  const out=1-Math.max(0,Math.min(1,(t-0.10)/0.28));
+  const inn=Math.max(0,Math.min(1,(t-0.56)/0.30));
+  capOut.style.opacity=out.toFixed(3);
+  capIn.style.opacity=inn.toFixed(3);
+}
+function layout(){
+  sb3d.style.setProperty('--bw',book.clientWidth+'px');
+}
+addEventListener('resize',layout);
+
+/* ------------------------------------------------------ spring loop */
+let spring=null;
+function animateTo(target,onDone,stiff,damp){
+  spring={kind:'spring',v:0,target:target,done:onDone,k:stiff||150,c:damp||22};
+  kick();
+}
+/* the riffle wants a fixed tempo, not a spring settling time */
+function tweenTo(target,dur,onDone){
+  spring={kind:'tween',from:turn?turn.t:0,target:target,dur:dur,e:0,done:onDone};
+  kick();
+}
+let raf=null,last=0;
+function tick(now){
+  raf=null;
+  const dt=Math.min(0.032,(now-last)/1000||0.016);last=now;
+  if(spring&&turn){
+    const s=spring;
+    if(s.kind==='tween'){
+      s.e+=dt;
+      const k=Math.min(1,s.e/s.dur);
+      turn.t=s.from+(s.target-s.from)*k;
+      applyTurn(turn.t);
+      if(k>=1){spring=null;const d=s.done;d&&d();}
+    }else{
+      const x=turn.t-s.target;
+      s.v+= (-s.k*x - s.c*s.v)*dt;
+      turn.t+=s.v*dt;
+      if(Math.abs(turn.t-s.target)<0.002&&Math.abs(s.v)<0.02){
+        turn.t=s.target;spring=null;
+        applyTurn(turn.t);
+        const d=s.done;d&&d();
+      }else applyTurn(turn.t);
+    }
+  }
+  viewSpring();
+  const lmoved=loupeEase();
+  /* kick() may already have queued the next frame from a done-callback */
+  if((spring||viewActive||lmoved)&&raf===null) raf=requestAnimationFrame(tick);
+}
+function kick(){ if(raf===null){last=performance.now();raf=requestAnimationFrame(tick);} }
+
+/* ------------------------------------------- tilt + zoom of the book */
+const TILT_X=4.5, TILT_Y=7;      /* degrees — deliberately restrained   */
+const ZOOM_MIN=0.9, ZOOM_MAX=1.5;
+const view={rx:0,ry:0,z:1, trx:0,try_:0,tz:1};
+let viewActive=false;
+let lastZ=1;
+function applyView(){
+  sb3d.style.setProperty('--rx',view.rx.toFixed(2)+'deg');
+  sb3d.style.setProperty('--ry',view.ry.toFixed(2)+'deg');
+  sb3d.style.setProperty('--zoom',view.z.toFixed(3));
+  /* the glass stays put, but the page under it has moved */
+  if(view.z!==lastZ){lastZ=view.z;if(typeof placeLoupe==='function')placeLoupe();}
+}
+function viewSpring(){
+  const e=0.14;
+  let moved=false;
+  for(const [k,t] of [['rx','trx'],['ry','try_'],['z','tz']]){
+    const d=view[t]-view[k];
+    if(Math.abs(d)>0.0006){view[k]+=d*e;moved=true;}
+    else view[k]=view[t];
+  }
+  if(moved)applyView();
+  viewActive=moved;
+  return moved;
+}
+function setView(rx,ry,z){
+  view.trx=Math.max(-TILT_X,Math.min(TILT_X,rx));
+  view.try_=Math.max(-TILT_Y,Math.min(TILT_Y,ry));
+  view.tz=Math.max(ZOOM_MIN,Math.min(ZOOM_MAX,z));
+  viewActive=true;kick();
+  if(typeof syncZoom==='function')syncZoom();
+}
+/* the book leans toward the cursor — no dragging, and never far */
+function tiltTo(cx,cy){
+  if(drag)return;                       /* hold still while a page is being turned */
+  const r=book.getBoundingClientRect();
+  if(!r.width)return;
+  const nx=Math.max(-1,Math.min(1,(cx-(r.left+r.width/2))/(r.width*0.62)));
+  const ny=Math.max(-1,Math.min(1,(cy-(r.top+r.height/2))/(r.height*0.9)));
+  setView(-ny*TILT_X, nx*TILT_Y, view.tz);
+}
+addEventListener('pointermove',e=>{
+  if(e.pointerType==='touch')return;
+  tiltTo(e.clientX,e.clientY);
+},{passive:true});
+addEventListener('pointerout',e=>{if(!e.relatedTarget)setView(0,0,view.tz)});
+addEventListener('blur',()=>setView(0,0,view.tz));
+/* the wheel belongs to the page — zoom is on the toolbar, or a double click
+   to come back to 100% */
+stage.addEventListener('dblclick',()=>setView(view.trx,view.try_,1));
+
+/* ------------------------------------------------------- pointer work */
+let drag=null;
+function bookRect(){return book.getBoundingClientRect()}
+function hideHint(){hint.classList.add('gone')}
+
+stage.addEventListener('pointerdown',e=>{
+  if(e.button!==0)return;
+  e.preventDefault();                     /* no text selection, no image drag */
+  const onBook=e.target.closest('.sb-zone');
+  stage.setPointerCapture(e.pointerId);
+  hideHint();
+  if(!onBook||introOn)return;
+  const r=bookRect();
+  const dir=(e.clientX-r.left)/r.width>0.5?'next':'prev';
+  startTurn(dir,0);
+  drag={dir:dir,x0:e.clientX,w:r.width,moved:0,vel:0,tPrev:performance.now()};
+});
+stage.addEventListener('pointermove',e=>{
+  if(!drag)return;
+  const dx=e.clientX-drag.x0;
+  drag.moved=Math.max(drag.moved,Math.abs(dx));
+  const raw=(drag.dir==='next'? -dx : dx)/(drag.w*0.62);
+  const t=Math.max(0,Math.min(1,raw));
+  const now=performance.now();
+  drag.vel=(t-(turn?turn.t:0))/Math.max(0.001,(now-drag.tPrev)/1000);
+  drag.tPrev=now;
+  if(turn){turn.t=t;applyTurn(t);}
+});
+function endDrag(e){
+  if(!drag)return;
+  const d=drag;drag=null;
+  if(!turn)return;
+  if(d.moved<6){                              /* a tap, not a drag */
+    commit();return;
+  }
+  const go = turn.t>0.42 || d.vel>1.1;
+  if(go)commit(); else cancel();
+}
+stage.addEventListener('dragstart',e=>e.preventDefault());
+stage.addEventListener('selectstart',e=>e.preventDefault());
+stage.addEventListener('pointerup',endDrag);
+stage.addEventListener('pointercancel',endDrag);
+
+/* ------------------------------------------------------ turn control */
+function startTurn(dir,t){
+  spring=null;
+  if(turn){idx=turn.to;turn=null;}      /* settle anything still in flight */
+  if(typeof shoveLoupe==='function')shoveLoupe(dir);
+  const from=idx;
+  turn={dir:dir,from:from,to:dir==='next'?(from+1)%M:(from-1+M)%M,t:t||0};
+  paint();
+}
+function commit(){
+  if(!turn)return;
+  if(REDUCED){idx=turn.to;turn=null;paint();return;}
+  animateTo(1,()=>{idx=turn.to;turn=null;paint();},170,26);
+  kick();
+}
+function cancel(){
+  if(!turn)return;
+  animateTo(0,()=>{turn=null;paint();},150,24);
+  kick();
+}
+function step(dir){
+  if(introOn)endIntro();
+  if(turn){ /* finish whatever is in flight first */ idx=turn.to;turn=null; }
+  startTurn(dir,0);commit();
+}
+function goTo(i){
+  if(introOn)endIntro();
+  if(i===idx)return;
+  if(turn){idx=turn.to;turn=null;}
+  const fwd=(i-idx+M)%M, back=(idx-i+M)%M;
+  if(Math.min(fwd,back)===1){step(fwd===1?'next':'prev');return;}
+  idx=i;paint();
+}
+document.getElementById('sbLeft').onclick=()=>step('prev');
+document.getElementById('sbRight').onclick=()=>step('next');
+addEventListener('keydown',e=>{
+  if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;
+  if(e.metaKey||e.ctrlKey||e.altKey)return;
+  const t=e.target;
+  if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable))return;
+  e.preventDefault();hideHint();
+  step(e.key==='ArrowRight'?'next':'prev');
+});
+document.getElementById('heroDown').onclick=()=>{
+  document.getElementById('about').scrollIntoView({behavior:'smooth',block:'start'});
+};
+
+/* --------------------------------------------------- loupe + controls */
+const loupe=document.getElementById('loupe');
+const lens=document.getElementById('loupeLens');
+const mag=document.getElementById('loupeMag');
+const zRead=document.getElementById('zRead');
+const loupeBtn=document.getElementById('loupeBtn');
+const zInBtn=document.getElementById('zIn'), zOutBtn=document.getElementById('zOut');
+const MAG=2.3;
+const DESK=getComputedStyle(document.documentElement).getPropertyValue('--paper').trim()||'#ece7dc';
+let loupeOn=true, lx=null, ly=null, lgrab=null, lTarget=null;
+
+function loupeSize(){return Math.round(Math.max(165,Math.min(262,book.clientWidth*0.235)));}
+/* the loupe's own coordinate space: stage pixels in live mode (it sits
+   outside the book's transform), book pixels otherwise */
+function bookBox(){
+  return {x:0,y:0,w:book.clientWidth,h:book.clientHeight};
+}
+/* park it on the desk at the lower right, half off the book */
+function restLoupe(){
+  const b=bookBox();
+  lx=b.x+b.w*0.88; ly=b.y+b.h*0.855;
+  placeLoupe();
+}
+/* The glass sits above the tilt, in the book's untransformed pixels, so the
+   lean of the page never nudges it.  What the tilt does change is which part
+   of the paper is under the glass, and only the scale matters enough to
+   correct for: the book is drawn about its own centre. */
+const zoomWrap=document.getElementById('zoomWrap');
+const zoomInner=document.getElementById('zoomInner');
+/* mirror whatever the book is currently showing into the magnified copy */
+function syncZoomLayer(){
+  if(LITE)return;               /* no second copy of the book on low-end */
+  zoomInner.textContent='';
+  for(const c of book.children){
+    if(c.classList.contains('sb-zone'))continue;      /* hit targets need no copy */
+    zoomInner.appendChild(c.cloneNode(true));
+  }
+}
+function placeLoupe(){
+  if(lx===null)return;
+  const B=bookBox(), bw=B.w, bh=B.h;
+  if(!bw)return;
+  const R=loupeSize()/2, bez=R*2*0.058;
+  loupe.style.setProperty('--lr',R*2+'px');
+  loupe.style.transform='translate3d('+(lx-R).toFixed(1)+'px,'+(ly-R).toFixed(1)+'px,0)';
+  if(loupeOn)loupe.classList.add('on');
+
+  /* where the paper's edges actually land once the book is scaled */
+  const z=view.z, cx=bw/2, cy=bh/2;
+  const x0=cx+(bw*.051-cx)*z, x1=cx+(bw*.949-cx)*z;
+  const y0=cy+(bh*.218-cy)*z, y1=cy+(bh*.782-cy)*z;
+  /* How far the glass's own centre is inside the paper.  The copy fades out
+     as it wanders off the sheet, so you are left looking through plain
+     glass rather than at a sliver of page on flat desk. */
+  const nx=Math.max(x0,Math.min(lx,x1));
+  const ny=Math.max(y0,Math.min(ly,y1));
+  const inside=(lx>x0&&lx<x1&&ly>y0&&ly<y1)
+    ? Math.min(lx-x0, x1-lx, ly-y0, y1-ly)
+    : -Math.hypot(lx-nx,ly-ny);
+  const k=Math.max(0,Math.min(1,(inside+R*0.30)/(R*0.55)));
+
+  if(LITE){zoomWrap.style.opacity=0;return;}   /* plain glass on low-end */
+  zoomWrap.style.opacity=(loupeOn?k:0).toFixed(3);
+  if(k<=0.002)return;
+  const r=(R-bez).toFixed(1);
+  const mask='radial-gradient(circle '+r+'px at '+lx.toFixed(1)+'px '+ly.toFixed(1)+'px,'
+    +'#000 calc(100% - 1px),transparent 100%)';
+  zoomWrap.style.webkitMaskImage=mask;
+  zoomWrap.style.maskImage=mask;
+  /* the page point beneath the glass, magnified about that same spot so the
+     lens keeps showing MAG times whatever is on screen */
+  const px=cx+(lx-cx)/z, py=cy+(ly-cy)/z, s=MAG*z;
+  zoomInner.style.transform='translate('+(lx-px*s).toFixed(1)+'px,'+(ly-py*s).toFixed(1)+'px) '
+    +'scale('+s.toFixed(4)+')';
+}
+/* the leaf shoves the glass aside as it sweeps past */
+function shoveLoupe(dir){
+  if(!loupeOn||lx===null||lgrab)return;
+  const b=bookBox();
+  /* which page point the glass covers, once the book's scale is undone */
+  const nx=(b.w/2+(lx-b.x-b.w/2)/view.z)/b.w, ny=(b.h/2+(ly-b.y-b.h/2)/view.z)/b.h;
+  if(nx<0.02||nx>0.98||ny<0.17||ny>0.83)return;      /* already clear of the page */
+  lTarget={x:b.x+b.w*(dir==='next'?0.12:0.88), y:b.y+b.h*0.855};
+  kick();
+}
+function loupeEase(){
+  if(!lTarget)return false;
+  if(lgrab){lTarget=null;return false;}
+  const dx=lTarget.x-lx, dy=lTarget.y-ly;
+  if(Math.abs(dx)<0.5&&Math.abs(dy)<0.5){lx=lTarget.x;ly=lTarget.y;lTarget=null;placeLoupe();return false;}
+  lx+=dx*0.17;ly+=dy*0.17;placeLoupe();
+  return true;
+}
+loupe.addEventListener('pointerdown',e=>{
+  if(!loupeOn||e.button!==0)return;
+  e.preventDefault();e.stopPropagation();     /* never starts a page turn */
+  lTarget=null;
+  lgrab={cx:e.clientX,cy:e.clientY,lx0:lx,ly0:ly};
+  loupe.classList.add('held');
+  loupe.setPointerCapture(e.pointerId);
+  hideHint();
+});
+loupe.addEventListener('pointermove',e=>{
+  if(!lgrab)return;
+  const b=bookBox(), R=loupeSize()/2;
+  /* the glass carries none of the book's transform, so the cursor maps 1:1 */
+  lx=Math.max(b.x-R*0.7,Math.min(b.x+b.w+R*0.7, lgrab.lx0+(e.clientX-lgrab.cx)));
+  ly=Math.max(b.y-R*0.7,Math.min(b.y+b.h+R*1.0, lgrab.ly0+(e.clientY-lgrab.cy)));
+  placeLoupe();
+});
+function dropLoupe(){lgrab=null;loupe.classList.remove('held');}
+loupe.addEventListener('pointerup',dropLoupe);
+loupe.addEventListener('pointercancel',dropLoupe);
+loupeBtn.onclick=()=>{
+  loupeOn=!loupeOn;
+  loupeBtn.setAttribute('aria-pressed',String(loupeOn));
+  loupe.classList.toggle('on',loupeOn);
+  if(loupeOn&&lx===null)restLoupe();
+};
+addEventListener('resize',()=>{lx=null;restLoupe();});
+
+function syncZoom(){
+  zRead.textContent=Math.round(view.tz*100)+'%';
+  zOutBtn.disabled=view.tz<=ZOOM_MIN+0.001;
+  zInBtn.disabled=view.tz>=ZOOM_MAX-0.001;
+}
+zInBtn.onclick=()=>{setView(view.trx,view.try_,view.tz*1.16);hideHint();};
+zOutBtn.onclick=()=>{setView(view.trx,view.try_,view.tz/1.16);hideHint();};
+
+/* --------------------------------------------------------- the index */
+const plateList=document.getElementById('plateList');
+PAGES.forEach((p,i)=>{
+  const li=el('li');
+  const b=el('button','plate');
+  b.innerHTML='<span class="n">'+String(i+1).padStart(2,'0')+'</span>'+
+              '<span class="t"></span><span class="p"></span>';
+  b.querySelector('.t').textContent=p.title;
+  b.querySelector('.p').textContent=p.place;
+  b.onclick=()=>{goTo(i);document.getElementById('sketchbook').scrollIntoView({behavior:'smooth',block:'center'});};
+  li.appendChild(b);plateList.appendChild(li);
+});
+function marks(){
+  const cur=turn?turn.to:idx;
+  plateList.querySelectorAll('.plate').forEach((b,i)=>b.setAttribute('aria-current',i===cur?'true':'false'));
+}
+
+/* ---------------------------------------------------------- the riffle */
+let riffle=null,riffleAt=0,introOn=false;
+function endIntro(){
+  introOn=false;wrap.classList.remove('intro','b2');
+}
+function riffleStep(){
+  const s=riffle[riffleAt];
+  wrap.classList.toggle('b2',s.bell>0.55);
+  startTurn('next',0);
+  tweenTo(1,s.dur,()=>{
+    idx=turn.to;turn=null;
+    riffleAt++;
+    if(introOn&&riffleAt<riffle.length){paint();riffleStep();}
+    else{endIntro();paint();}
+  });
+}
+function startIntro(){
+  const coarse=matchMedia('(max-width: 640px), (pointer: coarse)').matches;
+  if(coarse||REDUCED||Q.has('nointro')||window.PB_APP){idx=LAND;paint();return;}
+  const steps=M+LAND;
+  riffle=[];
+  for(let r=0;r<steps;r++){
+    const bell=Math.sin(Math.PI*(r/(steps-1)));
+    riffle.push({bell:bell,dur:0.26-0.19*bell});
+  }
+  riffleAt=0;introOn=true;wrap.classList.add('intro');
+  riffleStep();
+}
+
+/* ------------------------------------------------------------- boot */
+(async function boot(){
+  idx=Q.has('shot')?(parseInt(Q.get('shot'),10)||0)%M:0;
+  paint();applyView();
+  await Promise.all((LITE?PAGES.slice(0,2):PAGES).map(p=>{
+    const im=new Image();im.src=p.url;
+    return im.decode?im.decode().catch(()=>{}):new Promise(r=>{im.onload=im.onerror=r});
+  }));
+  if(document.fonts&&document.fonts.ready)await document.fonts.ready.catch(()=>{});
+  syncZoom();restLoupe();
+  document.body.dataset.ready='1';
+  if(Q.has('shot')){
+    if(Q.has('t')){startTurn(Q.get('dir')||'next',parseFloat(Q.get('t')));}
+    return;
+  }
+  setTimeout(startIntro,220);
+})();
+</script>
+<div id="pbWelcome">
+  <div class="pb-card">
+    <h1>Make this book yours</h1>
+    <p>Choose photos from your phone — <b>select several at once</b>, then set the crop for each one, in turn.
+       Choose how the photos should fill the book, then crop each one — soft paper
+       edges, converted to WebP right here on your device. Nothing is uploaded
+       anywhere.</p>
+    <div class="pb-modes" id="pbModes">
+      <button class="pb-modebtn active" data-mode="combined">One photo across both pages</button>
+      <button class="pb-modebtn" data-mode="single">One photo per page</button>
+    </div>
+    <button id="pbPick" class="pb-btn">Choose photos</button>
+    <p class="pb-note" id="pbProgress"></p>
+  </div>
+</div>
+<div id="pbModeSheet" hidden>
+  <div class="pb-sheet">
+    <h2 id="pbModeQ">How should these photos fill the book?</h2>
+    <div class="pb-modes">
+      <button class="pb-modebtn" data-mode="combined">One photo across both pages</button>
+      <button class="pb-modebtn" data-mode="single">One photo per page</button>
+    </div>
+    <button id="pbModeCancel" class="pb-btn ghost">Cancel</button>
+  </div>
+</div>
+<input id="pbInput" type="file" accept="image/*" multiple hidden>
+<button id="pbAddMore" title="Add more photos" hidden>＋ Add photos</button>
+<button id="pbReset" title="Back to the demo pages" hidden>Reset</button>
+<div id="pbStatus" role="status" hidden></div>
+<script>
+
+
+
+
+const PB_VERSION = '15';
+
+/* ============================================================
+   PHOTO BOOK — app layer
+   Lets the user pick photos from their device; each one is
+   cover-cropped, given soft rounded paper edges and a shadow,
+   encoded to WebP in the browser, and laid onto a book page.
+   Photos can be added in several batches — they append.
+   Everything runs on the device — no upload, no server.
+   ============================================================ */
+
+/* geometry measured from the original book pages */
+const ART = { x0: 92, y0: 272, x1: 1668, y1: 968, R: 42, WAVE: 3.5 };
+const AW = ART.x1 - ART.x0;      /* 1576 */
+const AH = ART.y1 - ART.y0;      /*  696 */
+
+const PB_MAX = 24;               /* how many spreads the book may hold */
+
+/* page geometry for the two modes */
+const LEFT_RECT  = { x0: 92,  y0: 272, x1: 880,  y1: 968 };   /* 788 x 696 */
+const RIGHT_RECT = { x0: 880, y0: 272, x1: 1668, y1: 968 };   /* 788 x 696 */
+const PB_HALF_ASPECT = 788 / 696;                             /* single page */
+let pbMode = 'combined';         /* 'combined' = one photo over both pages,
+                                    'single'   = one photo per page          */
+
+/* small deterministic PRNG so every page gets its own edge shape */
+function pbRng(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+/* rounded rectangle with a gently wavy boundary — the paper-sheet shape */
+function pbWavyPath(ctx, seed) {
+  const { x0, y0, x1, y1, R } = ART;
+  const rnd = pbRng(seed);
+  const ph = [0, 1, 2, 3, 4, 5].map(() => rnd() * Math.PI * 2);
+  const dy = x => ART.WAVE * 0.5 * (Math.sin(2 * Math.PI * x / 310 + ph[0]) +
+                                    Math.sin(2 * Math.PI * x / 520 + ph[1]) +
+                                    Math.sin(2 * Math.PI * x / 180 + ph[2]));
+  const dx = y => ART.WAVE * 0.5 * (Math.sin(2 * Math.PI * y / 260 + ph[3]) +
+                                    Math.sin(2 * Math.PI * y / 440 + ph[4]) +
+                                    Math.sin(2 * Math.PI * y / 150 + ph[5]));
+  ctx.beginPath();
+  ctx.moveTo(x0 + R, y0 + dy(x0 + R));
+  for (let x = x0 + R; x <= x1 - R; x += 6) ctx.lineTo(x, y0 + dy(x));   /* top    */
+  ctx.arcTo(x1, y0, x1, y1, R);
+  for (let y = y0 + R; y <= y1 - R; y += 6) ctx.lineTo(x1 + dx(y), y);   /* right  */
+  ctx.arcTo(x1, y1, x0, y1, R);
+  for (let x = x1 - R; x >= x0 + R; x -= 6) ctx.lineTo(x, y1 + dy(x));   /* bottom */
+  ctx.arcTo(x0, y1, x0, y0, R);
+  for (let y = y1 - R; y >= y0 + R; y -= 6) ctx.lineTo(x0 + dx(y), y);   /* left   */
+  ctx.arcTo(x0, y0, x1, y0, R);
+  ctx.closePath();
+}
+
+/* decode with an <img> element — works on every browser, including older
+   Android and iOS, where createImageBitmap can be missing */
+/* what a file calls itself, for clear error messages */
+function pbFileLabel(f) {
+  const t = f.type || 'unknown type';
+  return (f.name || 'photo') + ' (' + t + ')';
+}
+/* HEIC/HEIF is what many phone cameras save by default, and browsers cannot
+   decode it. Detect it so the message can say exactly what to do. */
+function pbIsHeic(f) {
+  const n = (f.name || '').toLowerCase();
+  return /heic|heif/i.test(f.type || '') || /\.(heic|heif)$/i.test(n);
+}
+
+/* Some pickers hand over a file with no mime type at all. A blob without a
+   type can be refused by the browser, so give it one from the name. */
+function pbNormalize(file) {
+  if (file.type && /^image\//.test(file.type)) return file;
+  const name = (file.name || '').toLowerCase();
+  const ext = name.indexOf('.') >= 0 ? name.split('.').pop() : '';
+  const guess = { jpg:'image/jpeg', jpeg:'image/jpeg', png:'image/png', webp:'image/webp',
+                  gif:'image/gif', bmp:'image/bmp', avif:'image/avif',
+                  heic:'image/heic', heif:'image/heif' }[ext];
+  if (!guess) return file;
+  try { return new File([file], file.name || ('photo.' + ext), { type: guess }); }
+  catch (e) { return file; }
+}
+
+/* Read a file's bytes. Some document providers (cloud galleries, a file
+   manager) hand over a reference whose permission is momentarily unavailable,
+   so a short retry is worth one attempt. */
+async function pbReadBytes(f) {
+  try {
+    return await f.arrayBuffer();
+  } catch (e) {
+    await new Promise(r => setTimeout(r, 350));
+    return await f.arrayBuffer();      /* throws again if it really is refused */
+  }
+}
+
+/* Decode a photo. Two paths are tried:
+     1. an <img> element — the ordinary, most compatible route
+     2. createImageBitmap — the platform decoder, which on some phones reads
+        formats the <img> path refuses
+   Returns { src, w, h, release() }. The object url is deliberately NOT
+   revoked until release(): revoking it before the page is drawn can
+   invalidate the image on some mobile browsers. */
+async function pbDecode(file) {
+  const f = pbNormalize(file);
+
+  const tried = [];
+
+  /* 1. the ordinary <img> path */
+  let url = null;
+  try {
+    url = URL.createObjectURL(f);
+    const img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => rej(new Error('img'));
+      i.src = url;
+    });
+    return { src: img, w: img.naturalWidth, h: img.naturalHeight,
+             release: () => { if (url) { URL.revokeObjectURL(url); url = null; } } };
+  } catch (e) {
+    tried.push('img' + (e && e.message && e.message !== 'img' ? ':' + e.message : ''));
+    if (url) { URL.revokeObjectURL(url); url = null; }
+  }
+
+  /* 2. read the bytes ourselves and hand the browser a data url. This is a
+     different route entirely: it works in contexts where blob urls are
+     refused — for example a page opened from a file manager, where the
+     browser gives the page an opaque origin. */
+  try {
+    const dataUrl = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = () => rej(new Error('reader:' + ((r.error && r.error.name) || 'failed')));
+      r.readAsDataURL(f);
+    });
+    const img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => rej(new Error('img(data)'));
+      i.src = dataUrl;
+    });
+    return { src: img, w: img.naturalWidth, h: img.naturalHeight, release: () => {} };
+  } catch (e) {
+    tried.push('data:' + (e && e.message ? e.message : 'failed'));
+  }
+
+  /* 3. read the bytes and rebuild the blob with an explicit type */
+  if (f.arrayBuffer) {
+    try {
+      const buf = await pbReadBytes(f);
+      const url2 = URL.createObjectURL(new Blob([buf], { type: f.type || 'image/png' }));
+      const img = await new Promise((res, rej) => {
+        const i = new Image();
+        i.onload = () => res(i);
+        i.onerror = () => rej(new Error('img(buf)'));
+        i.src = url2;
+      });
+      return { src: img, w: img.naturalWidth, h: img.naturalHeight,
+               release: () => { try { URL.revokeObjectURL(url2); } catch (e) {} } };
+    } catch (e) {
+      tried.push('buf:' + (e && e.message ? e.message : 'failed'));
+    }
+  }
+
+  if (typeof createImageBitmap === 'function') {
+    /* 4. the platform decoder, full size */
+    try {
+      const bmp = await createImageBitmap(f);
+      return { src: bmp, w: bmp.width, h: bmp.height,
+               release: () => { try { if (bmp.close) bmp.close(); } catch (e) {} } };
+    } catch (e) { tried.push('bitmap:' + ((e && e.message) || 'failed')); }
+
+    /* 5. decode AND downscale in one step. A big camera photo needs a lot of
+       memory to decode at full size, and a small phone refuses — this path
+       never materialises the full-size bitmap, so it succeeds where 1 and 2
+       cannot. Tried at three sizes, largest first. */
+    for (const target of [2600, 1800, 1200]) {
+      try {
+        const bmp = await createImageBitmap(f, { resizeWidth: target, resizeQuality: 'high' });
+        if (bmp && bmp.width) {
+          console.log('photo decoded downscaled to ' + bmp.width + 'x' + bmp.height);
+          return { src: bmp, w: bmp.width, h: bmp.height,
+                   release: () => { try { if (bmp.close) bmp.close(); } catch (e) {} } };
+        }
+      } catch (e) { tried.push('resize' + target + ':' + ((e && e.message) || 'failed')); }
+    }
+  }
+
+  throw new Error('could not be read [tried: ' + tried.join(', ') + ']');
+}
+
+/* the book's own blank paper, sampled from an original spread. Used to fill a
+   page that has no photo, so it reads as a normal empty page of the book
+   instead of bare background. */
+const PB_PAPER = 'data:image/png;base64,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';
+const PB_PAPER_CROP = { sx: 0, sy: 0, sw: 320, sh: 220 };
+
+/* decode a url (data uri) into an image element */
+function pbDecodeUrl(url) {
+  return new Promise((res, rej) => {
+    const i = new Image();
+    i.onload = () => res(i);
+    i.onerror = () => rej(new Error('could not load the paper swatch'));
+    i.src = url;
+  });
+}
+
+/* free a canvas' memory straight away — matters on low-RAM phones */
+function pbRelease(c) { try { c.width = 0; c.height = 0; } catch (e) {} }
+
+/* encode the page: WebP when the device supports it (virtually all modern
+   phones), PNG as a safe fallback if the encoder is unavailable or slow */
+function pbEncode(canvas, budgetMs = 6000) {
+  const toBlob = type => new Promise(res => canvas.toBlob(res, type, 0.84));
+  const race = (type, ms) => Promise.race([
+    toBlob(type), new Promise(res => setTimeout(() => res(null), ms))
+  ]);
+  return race('image/webp', budgetMs)
+    .then(b => (b && b.type === 'image/webp') ? b : race('image/png', 15000))
+    .then(b => b || toBlob('image/png'))            /* one more attempt */
+    .then(b => {
+      if (!b) throw new Error('the device could not encode the page (out of memory?)');
+      return b;
+    });
+}
+
+/* turn one user photo into a finished book page (returns blob url + stats) */
+async function pbMakePage(file, seed, crop) {
+  const d = await pbDecode(file);
+
+  /* Which part of the photo to use.
+     Default: cover-crop — fill the page shape, take the centre.
+     If the user moved the crop window in the editor, use that instead. */
+  let sx, sy, sw, sh;
+  if (crop) {
+    sx = crop.sx; sy = crop.sy; sw = crop.sw; sh = crop.sh;
+  } else {
+    const s = Math.max(AW / d.w, AH / d.h);
+    sw = AW / s; sh = AH / s;
+    sx = (d.w - sw) / 2; sy = (d.h - sh) / 2;
+  }
+
+  /* layer 1 — the drop shadow (soft shape, warm dark, 10px down) */
+  const shc = document.createElement('canvas'); shc.width = 1760; shc.height = 1240;
+  const shx = shc.getContext('2d');
+  shx.filter = 'blur(13px)';
+  shx.translate(0, 10);
+  shx.fillStyle = 'rgba(58,44,26,0.17)';
+  pbWavyPath(shx, seed); shx.fill();
+  /* cut the sheet's own area out, so only the halo around it remains —
+     that keeps an unused page clean instead of tinted */
+  shx.setTransform(1, 0, 0, 1, 0, 0);
+  shx.filter = 'none';
+  shx.globalCompositeOperation = 'destination-out';
+  shx.fillStyle = '#000';
+  pbWavyPath(shx, seed); shx.fill();
+  shx.globalCompositeOperation = 'source-over';
+
+  /* layer 2 — the photo, masked to the soft paper shape */
+  const pc = document.createElement('canvas'); pc.width = 1760; pc.height = 1240;
+  const px = pc.getContext('2d');
+  px.drawImage(d.src, sx, sy, sw, sh, ART.x0, ART.y0, AW, AH);
+  px.globalCompositeOperation = 'destination-in';
+  px.filter = 'blur(2px)';                    /* the ~4px soft edge */
+  px.fillStyle = '#fff';
+  pbWavyPath(px, seed); px.fill();
+  px.filter = 'none';
+
+  /* compose and encode right here in the browser */
+  const c = document.createElement('canvas'); c.width = 1760; c.height = 1240;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(shc, 0, 0);
+  ctx.drawImage(pc, 0, 0);
+
+  const blob = await pbEncode(c);
+  pbRelease(shc); pbRelease(pc); pbRelease(c);     /* free memory now */
+  d.release();
+  return { url: URL.createObjectURL(blob), type: blob.type, bytes: blob.size };
+}
+
+
+/* ---------------------------------------------------------- single-page mode
+   Two photos share one spread: each fills one page. Corners are rounded and
+   the edge waves on the OUTER sides only — where the two pages meet at the
+   spine the edge is straight, so they sit flush. */
+function pbPaintHalf(ctx, dec, crop, rect, seed) {
+  const rw = rect.x1 - rect.x0, rh = rect.y1 - rect.y0;
+  let sx, sy, sw, sh;
+  if (crop) { sx = crop.sx; sy = crop.sy; sw = crop.sw; sh = crop.sh; }
+  else {
+    const s = Math.max(rw / dec.w, rh / dec.h);
+    sw = rw / s; sh = rh / s;
+    sx = (dec.w - sw) / 2; sy = (dec.h - sh) / 2;
+  }
+  const pc = document.createElement('canvas'); pc.width = 1760; pc.height = 1240;
+  const px = pc.getContext('2d');
+  px.drawImage(dec.src, sx, sy, sw, sh, rect.x0, rect.y0, rw, rh);
+  /* rounded, wavy paper edge … */
+  px.globalCompositeOperation = 'destination-in';
+  px.filter = 'blur(2px)';
+  px.fillStyle = '#fff';
+  pbWavyPath(px, seed); px.fill();
+  /* … then cut to this half: the spine edge stays straight */
+  px.filter = 'none';
+  px.fillRect(rect.x0, rect.y0, rw, rh);
+  px.globalCompositeOperation = 'source-over';
+  ctx.drawImage(pc, 0, 0);
+  pbRelease(pc);
+}
+
+async function pbMakeSpread(fileA, fileB, cropA, cropB, seed) {
+  const decA = await pbDecode(fileA);
+  const decB = fileB ? await pbDecode(fileB) : null;
+
+  const c = document.createElement('canvas'); c.width = 1760; c.height = 1240;
+  const ctx = c.getContext('2d');
+
+  /* one shadow for the whole spread, as in the original pages */
+  const shc = document.createElement('canvas'); shc.width = 1760; shc.height = 1240;
+  const shx = shc.getContext('2d');
+  shx.filter = 'blur(13px)';
+  shx.translate(0, 10);
+  shx.fillStyle = 'rgba(58,44,26,0.17)';
+  pbWavyPath(shx, seed); shx.fill();
+  /* keep only the halo outside the sheet, so an unused page stays clean */
+  shx.setTransform(1, 0, 0, 1, 0, 0);
+  shx.filter = 'none';
+  shx.globalCompositeOperation = 'destination-out';
+  shx.fillStyle = '#000';
+  pbWavyPath(shx, seed); shx.fill();
+  shx.globalCompositeOperation = 'source-over';
+  ctx.drawImage(shc, 0, 0);
+
+  pbPaintHalf(ctx, decA, cropA, LEFT_RECT, seed);
+  if (decB) {
+    pbPaintHalf(ctx, decB, cropB, RIGHT_RECT, seed + 1);
+  } else {
+    /* no second photo: make the facing page a clean, normal empty page */
+    try {
+      const paper = await pbDecodeUrl(PB_PAPER);
+      pbPaintHalf(ctx, { src: paper, w: paper.naturalWidth, h: paper.naturalHeight },
+                  PB_PAPER_CROP, RIGHT_RECT, seed + 1);
+    } catch (e) { console.warn('paper page could not be drawn', e); }
+  }
+
+  const blob = await pbEncode(c);
+  pbRelease(shc); pbRelease(c);                    /* free memory now */
+  decA.release(); if (decB) decB.release();
+  return { url: URL.createObjectURL(blob), type: blob.type, bytes: blob.size };
+}
+
+/* ---------------------------------------------------------- crop editor
+   ONE editor walks through the whole batch. The page shape never changes
+   (1576 : 696) — on each photo the user moves the window and can zoom in to
+   pick a smaller area, stepping forward and back until every photo is set.
+   Each photo's choice is remembered, so going back shows it again. */
+const PB_ASPECT = AW / AH;
+const pbAspect = () => (pbMode === 'single' ? PB_HALF_ASPECT : PB_ASPECT);
+
+function pbCropSeries(files) {
+  const ASP = pbAspect();          /* fixed for this run */
+  return new Promise(resolve => {
+    const saved = files.map(() => null);     /* per photo: {rect:{sx,sy,sw,sh}} */
+    let i = 0;
+    let dw = 0, dh = 0, ds = 1, fw = 0, fh = 0, fx = 0, fy = 0, zoom = 1;
+    const ZMIN = 1, ZMAX = 4;
+
+    const ov = document.createElement('div');
+    ov.id = 'pbCrop';
+    ov.innerHTML =
+      '<div class="pbc-card">' +
+        '<div class="pbc-head" id="pbcHead"></div>' +
+        '<div class="pbc-stage" id="pbcStage">' +
+          '<img id="pbcImg" alt="">' +
+          '<div class="pbc-frame" id="pbcFrame"></div>' +
+        '</div>' +
+        '<div class="pbc-zoom">' +
+          '<span class="pbc-zoomlabel">Zoom</span>' +
+          '<input id="pbcZoom" type="range" min="1" max="4" step="0.05" value="1">' +
+          '<span id="pbcZoomVal" class="pbc-zoomval">1.0\u00d7</span>' +
+        '</div>' +
+        '<div class="pbc-actions">' +
+          '<button id="pbcBack" class="pbc-btn ghost">Back</button>' +
+          '<button id="pbcCentre" class="pbc-btn ghost">Centre</button>' +
+          '<button id="pbcNext" class="pbc-btn">Next</button>' +
+        '</div>' +
+        '<button id="pbcAll" class="pbc-skip">Use centre crops for all</button>' +
+      '</div>';
+    document.body.appendChild(ov);
+
+    const stage = ov.querySelector('#pbcStage'), img = ov.querySelector('#pbcImg'),
+          frame = ov.querySelector('#pbcFrame'), slider = ov.querySelector('#pbcZoom'),
+          lbl = ov.querySelector('#pbcZoomVal'), head = ov.querySelector('#pbcHead'),
+          backBtn = ov.querySelector('#pbcBack'), nextBtn = ov.querySelector('#pbcNext');
+
+    const baseW = () => Math.min(dw, dh * ASP);
+
+    function place() {
+      const ox = parseFloat(img.style.left) || 0, oy = parseFloat(img.style.top) || 0;
+      frame.style.left = (ox + fx) + 'px'; frame.style.top = (oy + fy) + 'px';
+      frame.style.width = fw + 'px'; frame.style.height = fh + 'px';
+      lbl.textContent = zoom.toFixed(1) + '\u00d7';
+    }
+    function clamp() {
+      fx = Math.max(0, Math.min(dw - fw, fx));
+      fy = Math.max(0, Math.min(dh - fh, fy));
+    }
+    function setZoom(z) {
+      const cx = fx + fw / 2, cy = fy + fh / 2;
+      zoom = Math.max(ZMIN, Math.min(ZMAX, z));
+      fw = baseW() / zoom; fh = fw / ASP;
+      fx = cx - fw / 2; fy = cy - fh / 2;
+      clamp(); place();
+      slider.value = zoom.toFixed(2);
+    }
+    function layout() {
+      const stageW = stage.clientWidth, stageH = stage.clientHeight;
+      const iw = img.naturalWidth, ih = img.naturalHeight;
+      if (!iw || !stageW) return;
+      ds = Math.min(stageW / iw, stageH / ih);
+      dw = iw * ds; dh = ih * ds;
+      img.style.width = dw + 'px'; img.style.height = dh + 'px';
+      img.style.left = ((stageW - dw) / 2) + 'px';
+      img.style.top = ((stageH - dh) / 2) + 'px';
+      const st = saved[i];
+      if (st) {                                   /* restore this photo's choice */
+        fx = st.rect.sx * ds; fy = st.rect.sy * ds;
+        fw = st.rect.sw * ds; fh = st.rect.sh * ds;
+        zoom = Math.max(ZMIN, Math.min(ZMAX, baseW() / fw));
+      } else {                                    /* first visit: centred, 1x */
+        zoom = 1; fw = baseW(); fh = fw / ASP;
+        fx = (dw - fw) / 2; fy = (dh - fh) / 2;
+      }
+      clamp(); place();
+      slider.value = zoom.toFixed(2);
+    }
+    function saveState() {
+      if (!dw) return;                            /* layout not ready yet */
+      saved[i] = { rect: { sx: fx / ds, sy: fy / ds, sw: fw / ds, sh: fh / ds } };
+    }
+    function load(k) {
+      i = k;
+      head.textContent = 'Photo ' + (i + 1) + ' of ' + files.length + ' \u00b7 ' +
+        (pbMode === 'single' ? 'one photo per page' : 'across both pages') +
+        ' \u2014 drag to move, zoom in to pick a smaller area';
+      backBtn.style.visibility = i === 0 ? 'hidden' : 'visible';
+      nextBtn.textContent = (i === files.length - 1) ? 'Add to book' : 'Next';
+      let url = null;
+      try { url = URL.createObjectURL(files[i]); } catch (e) { url = null; }
+      if (!url) { head.textContent += ' (preview unavailable — the crop will be centred)'; return; }
+      img.onload = () => { URL.revokeObjectURL(url); layout(); };
+      img.onerror = () => { layout(); };
+      img.src = url;
+    }
+    function go(k) { saveState(); load(k); }
+    function close(keep) {
+      if (keep) saveState();
+      window.removeEventListener('resize', layout);
+      ov.remove();
+      /* hand the pipeline plain {sx,sy,sw,sh} rects (null = use the centre) */
+      resolve(saved.map(st => st ? st.rect : null));
+    }
+
+    /* drag to move · pinch / slider / wheel to zoom */
+    let drag = null, pinchStart = null;
+    const pts = new Map();
+    const dist = () => { const [a, b] = [...pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+
+    stage.addEventListener('pointerdown', e => {
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+      if (pts.size === 2) { pinchStart = { d: dist(), z: zoom }; drag = null; }
+      else if (pts.size === 1) { drag = { x: e.clientX, y: e.clientY, fx: fx, fy: fy }; }
+      frame.classList.add('active');
+      e.preventDefault();
+    });
+    stage.addEventListener('pointermove', e => {
+      if (pts.has(e.pointerId)) pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 2 && pinchStart) { setZoom(pinchStart.z * (dist() / pinchStart.d)); return; }
+      if (!drag) return;
+      fx = drag.fx + (e.clientX - drag.x);
+      fy = drag.fy + (e.clientY - drag.y);
+      clamp(); place();
+    });
+    const stop = e => {
+      if (e && e.pointerId !== undefined) pts.delete(e.pointerId);
+      if (pts.size < 2) pinchStart = null;
+      if (pts.size === 0) { drag = null; frame.classList.remove('active'); }
+    };
+    stage.addEventListener('pointerup', stop);
+    stage.addEventListener('pointercancel', stop);
+    stage.addEventListener('wheel', e => { e.preventDefault(); setZoom(zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12)); }, { passive: false });
+
+    slider.addEventListener('input', () => setZoom(parseFloat(slider.value)));
+    backBtn.onclick = () => { if (i > 0) go(i - 1); };
+    nextBtn.onclick = () => { if (i < files.length - 1) go(i + 1); else close(true); };
+    ov.querySelector('#pbcCentre').onclick = () => {
+      zoom = 1; fw = baseW(); fh = fw / ASP;
+      fx = (dw - fw) / 2; fy = (dh - fh) / 2; clamp(); place(); slider.value = '1';
+    };
+    ov.querySelector('#pbcAll').onclick = () => {
+      for (let k = 0; k < saved.length; k++) saved[k] = null;   /* centres everywhere */
+      close(false);
+    };
+    window.addEventListener('resize', layout);
+
+    load(0);
+  });
+}
+
+/* ---------------------------------------------------------- UI */
+/* app mode: strip the page down to the book itself */
+if (document.body) document.body.classList.add('pb-app');
+else document.addEventListener('DOMContentLoaded', () => document.body.classList.add('pb-app'));
+const PB_ORIGINAL = PAGES.slice();         /* the demo pages, for Reset */
+let pbUserMode = false;                    /* true once the user's photos are in */
+
+const pbEl = id => document.getElementById(id);
+const pbWelcome = pbEl('pbWelcome'), pbProgress = pbEl('pbProgress');
+const pbInput = pbEl('pbInput'), pbAddBtn = pbEl('pbAddMore'), pbResetBtn = pbEl('pbReset');
+const pbToast = pbEl('pbStatus');
+
+let pbToastTimer = null;
+function pbStatus(msg) {
+  pbToast.textContent = msg;
+  pbToast.hidden = false;
+  clearTimeout(pbToastTimer);
+  pbToastTimer = setTimeout(() => { pbToast.hidden = true; }, 4200);
+}
+
+function pbPrettyName(name) {
+  const base = name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim();
+  return (base.charAt(0).toUpperCase() + base.slice(1)).slice(0, 40) || 'My photo';
+}
+
+/* build the page objects the book expects (it reads p.url) */
+function pbPageObject(p) {
+  return { file: p.file, title: p.title, place: p.place, url: p.url || p.file };
+}
+
+function pbSetPages(pages, showIndex) {
+  PAGES.length = 0;
+  pages.forEach(p => PAGES.push(pbPageObject(p)));
+  M = PAGES.length;                        /* the book's page counter */
+  idx = Math.max(0, Math.min(showIndex || 0, M - 1));
+  turn = null;
+  if (wrap.classList.contains('intro')) wrap.classList.remove('intro');
+  paint();                                 /* rebuild the book */
+  applyView();
+}
+
+function pbAddPages(pages, showIndex) {
+  pages.forEach(p => PAGES.push(pbPageObject(p)));
+  M = PAGES.length;
+  idx = Math.max(0, Math.min(showIndex || 0, M - 1));
+  turn = null;
+  paint(); applyView();
+}
+
+async function pbIngest(files) {
+  const picked = Array.from(files);
+  if (!picked.length) return;
+
+  /* adding to a book that already holds the user's photos: ask again how the
+     new ones should be laid out (the first batch is asked on the welcome card) */
+  if (pbUserMode) {
+    const chosen = await pbAskMode(picked.length);
+    if (!chosen) { pbStatus('Nothing added.'); return; }
+    pbSetMode(chosen);
+  }
+
+  const existing = pbUserMode ? PAGES.length : 0;   /* demo pages are replaced */
+  const perSpread = pbMode === 'single' ? 2 : 1;     /* single mode: 2 photos per spread */
+  const room = (PB_MAX - existing) * perSpread;
+  if (room <= 0) {
+    pbStatus('The book is full — ' + PB_MAX + ' pages. Tap Reset to start over.');
+    return;
+  }
+  const take = picked.slice(0, room);
+  const skipped = picked.length - take.length;
+
+  /* set the crop for every photo, in one series */
+  const crops = await pbCropSeries(take);
+
+  const pages = [];
+  const failures = [];
+  const units = pbMode === 'single' ? Math.ceil(take.length / 2) : take.length;
+  for (let u = 0; u < units; u++) {
+    pbProgress.textContent = 'Preparing ' + (pbMode === 'single' ? 'spread ' : 'photo ') +
+                             (u + 1) + ' of ' + units + '…';
+    try {
+      if (pbMode === 'single') {
+        const a = take[u * 2], b = take[u * 2 + 1] || null;
+        const made = await pbMakeSpread(a, b, crops[u * 2], crops[u * 2 + 1], 101 + existing + u);
+        const t = pbPrettyName(a.name) + (b ? ' · ' + pbPrettyName(b.name) : '');
+        pages.push({ file: made.url, title: t, place: 'My photo' });
+      } else {
+        const made = await pbMakePage(take[u], 101 + existing + u, crops[u]);
+        pages.push({ file: made.url, title: pbPrettyName(take[u].name), place: 'My photo' });
+      }
+    } catch (e) {
+      console.warn('could not read', e);
+      const f = pbMode === 'single' ? (take[u * 2] || take[u * 2 + 1]) : take[u];
+      failures.push(pbFileLabel(f) + ', ' + Math.round((f.size || 0) / 1024) + 'KB — ' + e.message);
+    }
+    await new Promise(r => setTimeout(r, 0));        /* keep the UI responsive */
+  }
+
+  if (!pages.length) {
+    const blocked = /NotReadableError|permission problems|could not be read/i.test(
+      failures.join(' '));
+    if (blocked) {
+      pbProgress.textContent =
+        'The photo could not be opened — your browser refused access to the file, ' +
+        'not a problem with the picture. This happens with photos kept in a cloud ' +
+        'gallery (Google Photos, Drive) and when this page is opened from a file ' +
+        'manager.\n\nWhat to do: open this app from its web address, and pick a ' +
+        'photo saved on the phone itself (Downloads or Pictures) rather than one ' +
+        'still in the cloud. Taking a screenshot of the photo and adding that also ' +
+        'always works.\n\nDetails: ' + failures.slice(0, 1).join('');
+      return;
+    }
+    const heic = take.filter(pbIsHeic).length;
+    pbProgress.textContent =
+      'Could not read ' + (failures.length || take.length) + ' of ' + take.length +
+      ' photo(s): ' + (failures.slice(0, 3).join('; ') || 'unknown error') +
+      ' \u2014 tip: open the photo in your gallery and take a screenshot, ' +
+      'then add the screenshot; that always works.' +
+      (heic ? ' — HEIC/HEIF photos cannot be opened by a browser. In your gallery, ' +
+              'Share / Export as JPG and add those.' : '');
+    return;
+  }
+
+  if (pbUserMode) pbAddPages(pages, existing);       /* append, show the first new page */
+  else { pbSetPages(pages, 0); pbUserMode = true; }  /* first batch replaces the demo */
+
+  pbProgress.textContent = '';
+  pbWelcome.hidden = true;
+  pbAddBtn.hidden = false;
+  pbResetBtn.hidden = false;
+  pbStatus('Added ' + pages.length + (pages.length > 1 ? ' pages' : ' page') +
+           ' — the book now has ' + PAGES.length +
+           (failures.length ? ' (' + failures.length + ' skipped: ' + failures[0] + ')' : '') +
+           (skipped > 0 ? ' (' + skipped + ' over the ' + PB_MAX + ' limit)' : ''));
+}
+
+/* wiring */
+
+/* set the layout mode everywhere it shows: the chooser buttons and the
+   Add button's own label, so the current mode is always visible */
+function pbSetMode(m) {
+  pbMode = m;
+  document.querySelectorAll('.pb-modebtn').forEach(b =>
+    b.classList.toggle('active', b.dataset.mode === m));
+  if (pbAddBtn) {
+    pbAddBtn.textContent = '\uff0b Add photos \u00b7 ' +
+      (m === 'single' ? 'per page' : 'across two');
+  }
+}
+
+/* ask which layout the newly picked photos should use. Resolves with the
+   chosen mode, or null if the user cancels. */
+function pbAskMode(count) {
+  return new Promise(resolve => {
+    const sheet = pbEl('pbModeSheet');
+    if (!sheet) return resolve(pbMode);
+    const q = sheet.querySelector('#pbModeQ');
+    if (q) q.textContent = 'How should these ' + count + ' photo' +
+      (count > 1 ? 's' : '') + ' fill the book?';
+    sheet.querySelectorAll('.pb-modebtn').forEach(b =>
+      b.classList.toggle('active', b.dataset.mode === pbMode));
+    sheet.hidden = false;
+    const finish = mode => {
+      sheet.hidden = true;
+      sheet.querySelectorAll('.pb-modebtn').forEach(b => { b.onclick = null; });
+      const c = sheet.querySelector('#pbModeCancel'); if (c) c.onclick = null;
+      resolve(mode);
+    };
+    sheet.querySelectorAll('.pb-modebtn').forEach(b => {
+      b.onclick = () => finish(b.dataset.mode);
+    });
+    const cancel = sheet.querySelector('#pbModeCancel');
+    if (cancel) cancel.onclick = () => finish(null);
+  });
+}
+
+document.querySelectorAll('#pbModes .pb-modebtn').forEach(btn => {
+  btn.onclick = () => pbSetMode(btn.dataset.mode);
+});
+pbEl('pbPick').onclick = () => pbInput.click();
+pbAddBtn.onclick = () => pbInput.click();
+pbResetBtn.onclick = () => {
+  pbSetPages(PB_ORIGINAL.map(p => ({ file: p.url, title: p.title, place: p.place })), 0);
+  pbUserMode = false;
+  pbAddBtn.hidden = true; pbResetBtn.hidden = true; pbWelcome.hidden = false;
+  pbStatus('Back to the demo pages.');
+};
+/* clearing the value lets the user pick the SAME photos again later —
+   without this, the change event never fires a second time */
+pbInput.onchange = () => {
+  const files = Array.from(pbInput.files || []);
+  pbInput.value = '';
+  pbIngest(files);
+};
+
+pbSetMode(pbMode);      /* label the Add button with the current mode */
+
+/* expose for testing */
+console.log('Photo Book app v' + PB_VERSION + ' — master file');
+window.__pb = { version: PB_VERSION, setMode: pbSetMode, askMode: pbAskMode, makePage: pbMakePage, decode: pbDecode, cropSeries: pbCropSeries, setPages: pbSetPages,
+                addPages: pbAddPages, ingest: pbIngest, ART, AW, AH, MAX: PB_MAX,
+                makeSpread: pbMakeSpread, setMode: m => { pbMode = m; }, getMode: () => pbMode,
+                state: () => ({ pages: PAGES.length, M: M, idx: idx, userMode: pbUserMode, mode: pbMode }) };
+
+
+
+
+
+</script>
+</body>
+</html>
